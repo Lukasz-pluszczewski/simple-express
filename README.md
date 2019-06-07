@@ -1,7 +1,7 @@
 ## Usage
 ### Basic usage
 You can run the server just by executing the simpleExpress function.
-```
+```js
 import simpleExpress from 'simple-express';
 
 simpleExpress({
@@ -66,7 +66,7 @@ The error handler is a function that gets the following arguments:
 
 ## Usage examples
 ### Hello world
-```
+```js
 import simpleExpress from 'simple-express';
 
 simpleExpress({
@@ -83,7 +83,7 @@ simpleExpress({
 ```
 
 ### Simple users CRUD
-```
+```js
 import simpleExpress from 'simple-express';
 import users from 'users';
 
@@ -157,7 +157,7 @@ simpleExpress({
 ```
 
 ### Adding authentication
-```
+```js
 import simpleExpress from 'simple-express';
 import verifyToken from 'verifyToken';
 
@@ -182,7 +182,7 @@ simpleExpress({
 ```
 
 ### Adding authentication to one route only
-```
+```js
 import simpleExpress from 'simple-express';
 import users from 'users';
 import verifyToken from 'verifyToken';
@@ -222,7 +222,7 @@ simpleExpress({
 ```
 
 ### Error handling
-```
+```js
 import simpleExpress from 'simple-express';
 import users from 'users';
 import NotFoundError from 'errors/NotFoundError';
@@ -272,7 +272,7 @@ simpleExpress({
 ```
 
 ### Disabling default middlewares
-```
+```js
 import simpleExpress from 'simple-express';
 
 simpleExpress({
@@ -289,7 +289,7 @@ simpleExpress({
 
 ### Applying express middlewares
 Cors ({origin: true, credentials: true, exposedHeaders: ['Link', 'Jwt']}) and JSON body parser ({limit: '300kb'}) are configured by default
-```
+```js
 import simpleExpress from 'simple-express';
 import cookieParser from 'cookie-parser';
 
@@ -305,7 +305,7 @@ simpleExpress({
 ```
 
 ### Sending response manually
-```
+```js
 import simpleExpress from 'simple-express';
 
 simpleExpress({
