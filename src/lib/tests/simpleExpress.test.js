@@ -1,6 +1,6 @@
 import request from 'supertest';
 import freePort from 'find-free-port';
-import simpleExpress, { ValidationError } from '../index';
+import simpleExpress, { ValidationError, checkPropTypes } from '../index';
 import PropTypes from 'prop-types';
 
 describe('simpleExpress', () => {
@@ -29,12 +29,10 @@ describe('simpleExpress', () => {
           {
             path: '/',
             handlers: {
-              get: () => {
-                return {
-                  body: 'works',
-                  status: 201,
-                };
-              }
+              get: () => ({
+                body: 'works',
+                status: 201,
+              }),
             },
           },
           {
@@ -51,11 +49,9 @@ describe('simpleExpress', () => {
 
                   next();
                 },
-                () => {
-                  return {
-                    body: 'authenticated',
-                  };
-                },
+                () => ({
+                  body: 'authenticated',
+                }),
               ],
             },
           },
@@ -85,11 +81,9 @@ describe('simpleExpress', () => {
           {
             path: '/',
             handlers: {
-              get: () => {
-                return {
-                  body: { foo: 'bar', baz: 1 },
-                };
-              }
+              get: () => ({
+                body: { foo: 'bar', baz: 1 },
+              }),
             },
           },
         ],
@@ -107,11 +101,9 @@ describe('simpleExpress', () => {
           {
             path: '/:foo/:bar',
             handlers: {
-              post: ({ body, query, params }) => {
-                return {
-                  body: { body, query, params },
-                };
-              }
+              post: ({ body, query, params }) => ({
+                body: { body, query, params },
+              }),
             },
           },
         ],
@@ -172,28 +164,35 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works');
     });
-    it('validates params, body and query according to the provided propTypes', async () => {
+  });
+  describe('validationMiddleware', () => {
+    it('validates params, body, query, headers according to the provided propTypes', async () => {
       const { app } = await simpleExpress({
         port: freePorts[6],
         routes: [
           {
             path: '/:bam',
             handlers: {
-              post: () => ({
-                body: 'works'
-              }),
-            },
-            validate: {
-              body: PropTypes.shape({
-                foo: PropTypes.number,
-                bar: PropTypes.number,
-              }),
-              query: PropTypes.shape({
-                baz: PropTypes.oneOf(['right']),
-              }),
-              params: PropTypes.shape({
-                bam: PropTypes.oneOf(['correct']),
-              }),
+              post: [
+                checkPropTypes({
+                  body: PropTypes.shape({
+                    foo: PropTypes.number,
+                    bar: PropTypes.number,
+                  }),
+                  query: {
+                    baz: PropTypes.oneOf(['right']),
+                  },
+                  params: {
+                    bam: PropTypes.oneOf(['correct']),
+                  },
+                  headers: {
+                    custom: PropTypes.oneOf(['notwrong']).isRequired,
+                  },
+                }),
+                () => ({
+                  body: 'works'
+                })
+              ],
             },
           },
         ],
@@ -202,7 +201,10 @@ describe('simpleExpress', () => {
             if (error instanceof ValidationError) {
               return {
                 status: 400,
-                body: error.message,
+                body: {
+                  message: 'Bad request',
+                  errors: error.errors,
+                },
               };
             }
             next();
@@ -212,21 +214,31 @@ describe('simpleExpress', () => {
 
       await request(app)
         .post('/correct')
+        .set('custom', 'notwrong')
         .send({ foo: 123, bar: '123' })
         .expect(400);
 
       await request(app)
         .post('/correct?baz=wrong')
+        .set('custom', 'notwrong')
         .send({ foo: 123, bar: 123 })
         .expect(400);
 
       await request(app)
         .post('/wrong?baz=right')
+        .set('custom', 'notwrong')
         .send({ foo: 123, bar: 123 })
         .expect(400);
 
       await request(app)
         .post('/correct?baz=right')
+        .set('custom', 'notright')
+        .send({ foo: 123, bar: 123 })
+        .expect(400);
+
+      return request(app)
+        .post('/correct?baz=right')
+        .set('custom', 'notwrong')
         .send({ foo: 123, bar: 123 })
         .expect('works')
         .expect(200);

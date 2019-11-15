@@ -8,13 +8,19 @@ import _ from 'lodash';
 import log from './log';
 import getStats from './stats';
 import { createHandler, createErrorHandler } from './createHandler';
-import createValidateRequest from './validateRequest';
-import defaultValidationAdapter from './defaultValidationAdapter';
+import propTypesMiddleware from './propTypesMiddleware';
+
+export const checkPropTypes = propTypesMiddleware;
 
 const defaultAppValue = Symbol('defaultAppValue');
 const defaultServerValue = Symbol('defaultServerValue');
 
-export class ValidationError extends Error {}
+export class ValidationError extends Error {
+  constructor(errors) {
+    super();
+    this.errors = errors;
+  }
+}
 
 const getDefaultConfig = (userConfig, defaultConfig = {
   cors: {
@@ -71,14 +77,10 @@ const simpleExpress = async({
   routeParams = {},
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-  validationAdapter = defaultValidationAdapter,
 }) => {
   log(`Initializing simpleExpress app on port ${port}...`);
   // create stats
   const stats = getStats(port);
-
-  // creatingValidator
-  const validateRequest = createValidateRequest(validationAdapter);
 
   // creating express app
   const app = userApp === defaultAppValue ? express() : userApp;
@@ -125,7 +127,7 @@ const simpleExpress = async({
       }
 
       stats.registerEvent('registeringRoute', { path, method: mapMethod(method), numberOfHandlers: handler.length, names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name) });
-      app[mapMethod(method)](path, validate ? validateRequest(validate, mapMethod(method), path) : (req, res, next) => next(), ...handler.map(createHandlerWithParams));
+      app[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
     });
   });
 
@@ -147,6 +149,10 @@ const simpleExpress = async({
   log(`App is listening on port ${port}`);
 
   return { app, server, stats };
+};
+
+export const wrapMiddleware = middleware => ({ req, res, next }) => {
+  middleware(req, res, next);
 };
 
 export default simpleExpress;
