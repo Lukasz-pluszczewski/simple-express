@@ -8,9 +8,13 @@ import _ from 'lodash';
 import log from './log';
 import getStats from './stats';
 import { createHandler, createErrorHandler } from './createHandler';
+import createValidateRequest from './validateRequest';
+import defaultValidationAdapter from './defaultValidationAdapter';
 
 const defaultAppValue = Symbol('defaultAppValue');
 const defaultServerValue = Symbol('defaultServerValue');
+
+export class ValidationError extends Error {}
 
 const getDefaultConfig = (userConfig, defaultConfig = {
   cors: {
@@ -67,11 +71,14 @@ const simpleExpress = async({
   routeParams = {},
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-  simpleSocketio: simpleSocketioConfig,
+  validationAdapter = defaultValidationAdapter,
 }) => {
   log(`Initializing simpleExpress app on port ${port}...`);
   // create stats
   const stats = getStats(port);
+
+  // creatingValidator
+  const validateRequest = createValidateRequest(validationAdapter);
 
   // creating express app
   const app = userApp === defaultAppValue ? express() : userApp;
@@ -108,7 +115,7 @@ const simpleExpress = async({
   });
 
   // applying routes
-  routes.forEach(({ handlers, path }) => {
+  routes.forEach(({ handlers, path, validate }) => {
     if (path.indexOf('/') !== 0 && path !== '*') {
       log.warning(`Path "${path}" does not start with "/"`);
     }
@@ -118,7 +125,7 @@ const simpleExpress = async({
       }
 
       stats.registerEvent('registeringRoute', { path, method: mapMethod(method), numberOfHandlers: handler.length, names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name) });
-      app[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
+      app[mapMethod(method)](path, validate ? validateRequest(validate, mapMethod(method), path) : (req, res, next) => next(), ...handler.map(createHandlerWithParams));
     });
   });
 
@@ -138,16 +145,6 @@ const simpleExpress = async({
 
   stats.logStartup();
   log(`App is listening on port ${port}`);
-
-  if (simpleSocketioConfig) {
-    console.warn('simpleSocketio support is not yet implemented');
-  //   const { connection, io } = await simpleSocketio({
-  //     server,
-  //     ...simpleSocketioConfig,
-  //   });
-  //
-  //   return { app, server, stats, ioConnection: connection, io };
-  }
 
   return { app, server, stats };
 };

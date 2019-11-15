@@ -7,7 +7,6 @@
     "build": "node scripts/build.js",
     "demo": "node scripts/demo.js",
     "test": "node scripts/test.js",
-    "postinstall": "node bin/postinstall",
     "prepare": "npm run build"
   },
   "repository": {
@@ -51,6 +50,7 @@
     "eslint-plugin-jsx-a11y": "6.2.1",
     "eslint-plugin-react": "7.12.4",
     "file-loader": "3.0.1",
+    "find-free-port": "^2.0.0",
     "fork-ts-checker-webpack-plugin-alt": "0.4.14",
     "fs-extra": "7.0.1",
     "html-webpack-plugin": "4.0.0-beta.5",
@@ -72,6 +72,7 @@
     "resolve": "1.10.0",
     "sass-loader": "7.1.0",
     "style-loader": "0.23.1",
+    "supertest": "^4.0.2",
     "terser-webpack-plugin": "1.2.3",
     "url-loader": "1.1.2",
     "webpack": "4.30.0",
@@ -137,6 +138,7 @@
     "cors": "^2.8.5",
     "debug": "^4.1.1",
     "express": "^4.17.1",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "prop-types": "^15.7.2"
   }
 }
