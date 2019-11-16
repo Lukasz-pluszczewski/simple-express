@@ -151,8 +151,15 @@ const simpleExpress = async({
   return { app, server, stats };
 };
 
-export const wrapMiddleware = middleware => ({ req, res, next }) => {
-  middleware(req, res, next);
+export const wrapMiddleware = middleware => {
+  if (Array.isArray(middleware)) {
+    return middleware.map(el => ({ req, res, next }) => {
+      el(req, res, next);
+    })
+  }
+  return ({ req, res, next }) => {
+    middleware(req, res, next);
+  }
 };
 
 export default simpleExpress;

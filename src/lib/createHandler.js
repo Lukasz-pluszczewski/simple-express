@@ -4,8 +4,10 @@ import log from './log';
 export const createHandler = (additionalParams = {}, simpleExpress) => handler => async (req, res, next) => {
   let result;
 
-  req.requestTiming = Date.now();
-  log.request(`Request started ${req.requestTiming}ms, ${req.protocol}, ${req.originalUrl}`);
+  if (!req.requestTiming) {
+    req.requestTiming = Date.now();
+    log.request(`Request started ${req.requestTiming}ms, ${req.protocol}, ${req.originalUrl}`);
+  }
 
   try {
     result = await handler({

@@ -1,5 +1,11 @@
-import App from './../App';
+import request from 'supertest';
+import runApp from '../App';
 
-it('renders without crashing', () => {
+it('works', async () => {
+  const app = await runApp();
 
+  return request(app)
+    .get('/')
+    .expect(200)
+    .expect('works');
 });

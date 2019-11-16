@@ -1,6 +1,6 @@
 import request from 'supertest';
 import freePort from 'find-free-port';
-import simpleExpress, { ValidationError, checkPropTypes } from '../index';
+import simpleExpress, { ValidationError, checkPropTypes, wrapMiddleware } from '../index';
 import PropTypes from 'prop-types';
 
 describe('simpleExpress', () => {
@@ -20,6 +20,31 @@ describe('simpleExpress', () => {
     const port = freePorts[0];
     const { app } = await simpleExpress({ port });
     expect(app.server.address().port).toBe(port);
+  });
+  it('passes routeParams to routes', async () => {
+    const foo = 'works';
+
+    const { app } = await simpleExpress({
+      port: freePorts[9],
+      routes: [
+        {
+          path: '/',
+          handlers: {
+            get: [
+              ({ foo }) => ({
+                body: foo,
+              })
+            ],
+          },
+        },
+      ],
+      routeParams: { foo },
+    });
+
+    return request(app)
+      .get('/')
+      .expect('works')
+      .expect(200);
   });
   describe('route', () => {
     it('returns string body and status code', async () => {
@@ -244,4 +269,70 @@ describe('simpleExpress', () => {
         .expect(200);
     });
   });
+  describe('middlewareWrapper', () => {
+    it('wraps middleware', async () => {
+      const expressMiddleware = (req, res, next) => {
+        res.locals = 'works';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        port: freePorts[7],
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                wrapMiddleware(expressMiddleware),
+                ({ res }) => ({
+                  body: res.locals,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+    it('wraps array of middlewares', async () => {
+      const expressMiddleware1 = (req, res, next) => {
+        res.locals = 'wor';
+        next();
+      };
+      const expressMiddleware2 = (req, res, next) => {
+        res.locals += 'ks';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        port: freePorts[8],
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                ...wrapMiddleware([
+                  expressMiddleware1,
+                  expressMiddleware2,
+                ]),
+                ({ res }) => ({
+                  body: res.locals,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+  });
+
 });
