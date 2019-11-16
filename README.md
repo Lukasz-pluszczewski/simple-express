@@ -334,7 +334,7 @@ simpleExpress({
 
 ### Request validation
 #### Built-in prop-types helper
-```
+```js
 import simpleExpress, { ValidationError, checkPropTypes } from 'simple-express';
 
 const { app } = await simpleExpress({
@@ -384,7 +384,7 @@ const { app } = await simpleExpress({
 ```
 
 #### Express-validator
-```
+```js
 import simpleExpress, { wrapMiddleware } from 'simple-express';
 const { check, validationResult } = require('express-validator');
 
@@ -421,7 +421,7 @@ const { app } = await simpleExpress({
 This library uses [debug](https://github.com/visionmedia/debug) logging utility.
 
 To enable all logs set the following environment variable:
-```
+```bash
 DEBUG=simpleExpress,simpleExpress:*
 ```
 
@@ -435,7 +435,7 @@ You can enable only some logs:
 To be able to test your app with tool like supertest, you need to export `app`.
 
 #### app.js
-```
+```js
 import simpleExpress from '../lib';
 
 const runApp = async () => {
@@ -458,14 +458,14 @@ export default runApp;
 ```
 
 #### index.js
-```
+```js
 import runApp from './app';
 
 runApp();
 ```
 
 #### app.test.js
-```
+```js
 import request from 'supertest';
 import runApp from '../App';
 
