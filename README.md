@@ -271,6 +271,21 @@ simpleExpress({
 });
 ```
 
+You can pass the error to `next` callback, return it or throw. In each case, error handlers will get the error.
+```js
+const handler = ({ next }) => {
+  next(new Error('Error'));
+};
+
+const handler = () => {
+  return new Error('Error');
+};
+
+const handler = () => {
+  throw new Error('Error');
+};
+```
+
 ### Disabling default middlewares
 ```js
 import simpleExpress from 'simple-express';

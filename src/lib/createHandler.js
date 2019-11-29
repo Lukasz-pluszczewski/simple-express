@@ -29,6 +29,9 @@ export const createHandler = (additionalParams = {}, simpleExpress) => handler =
     return next(error);
   }
 
+  if (result instanceof Error) {
+    return next(result);
+  }
   sendResponse(req, res, result);
 };
 
@@ -54,6 +57,9 @@ export const createErrorHandler = (additionalParams = {}, simpleExpress) => hand
     return next(error);
   }
 
+  if (result instanceof Error) {
+    return next(result);
+  }
   sendResponse(req, res, result);
 };
 
