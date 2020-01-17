@@ -1,12 +1,13 @@
 import request from 'supertest';
 import freePort from 'find-free-port';
-import simpleExpress, { ValidationError, checkPropTypes } from '../index';
+import simpleExpress, { ValidationError, checkPropTypes, wrapMiddleware } from '../index';
 import PropTypes from 'prop-types';
 
 describe('simpleExpress', () => {
   let freePorts = [];
+  const getFreePort = () => freePorts.shift();
   beforeAll(async () => {
-    const numberOfPortsNeeded = 10;
+    const numberOfPortsNeeded = 20;
 
     try {
       const ports = await freePort(9000, 9100, '127.0.0.1', numberOfPortsNeeded);
@@ -17,14 +18,39 @@ describe('simpleExpress', () => {
   });
 
   it('listens on correct port', async () => {
-    const port = freePorts[0];
+    const port = getFreePort();
     const { app } = await simpleExpress({ port });
     expect(app.server.address().port).toBe(port);
+  });
+  it('passes routeParams to routes', async () => {
+    const foo = 'works';
+
+    const { app } = await simpleExpress({
+      port: getFreePort(),
+      routes: [
+        {
+          path: '/',
+          handlers: {
+            get: [
+              ({ foo }) => ({
+                body: foo,
+              })
+            ],
+          },
+        },
+      ],
+      routeParams: { foo },
+    });
+
+    return request(app)
+      .get('/')
+      .expect('works')
+      .expect(200);
   });
   describe('route', () => {
     it('returns string body and status code', async () => {
       const { app } = await simpleExpress({
-        port: freePorts[1],
+        port: getFreePort(),
         routes: [
           {
             path: '/',
@@ -76,7 +102,7 @@ describe('simpleExpress', () => {
     });
     it('returns json body', async () => {
       const { app } = await simpleExpress({
-        port: freePorts[2],
+        port: getFreePort(),
         routes: [
           {
             path: '/',
@@ -96,7 +122,7 @@ describe('simpleExpress', () => {
     });
     it('gets body, query and params', async () => {
       const { app } = await simpleExpress({
-        port: freePorts[3],
+        port: getFreePort(),
         routes: [
           {
             path: '/:foo/:bar',
@@ -117,7 +143,7 @@ describe('simpleExpress', () => {
     });
     it('gets next to work as middleware', async () => {
       const { app } = await simpleExpress({
-        port: freePorts[4],
+        port: getFreePort(),
         routes: [
           {
             path: '/',
@@ -143,7 +169,7 @@ describe('simpleExpress', () => {
     });
     it('does not return response when not returning object', async () => {
       const { app } = await simpleExpress({
-        port: freePorts[5],
+        port: getFreePort(),
         routes: [
           {
             path: '/',
@@ -165,10 +191,11 @@ describe('simpleExpress', () => {
         .expect('works');
     });
   });
+
   describe('validationMiddleware', () => {
     it('validates params, body, query, headers according to the provided propTypes', async () => {
       const { app } = await simpleExpress({
-        port: freePorts[6],
+        port: getFreePort(),
         routes: [
           {
             path: '/:bam',
@@ -242,6 +269,159 @@ describe('simpleExpress', () => {
         .send({ foo: 123, bar: 123 })
         .expect('works')
         .expect(200);
+    });
+  });
+  describe('middlewareWrapper', () => {
+    it('wraps middleware', async () => {
+      const expressMiddleware = (req, res, next) => {
+        res.locals = 'works';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        port: getFreePort(),
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                wrapMiddleware(expressMiddleware),
+                ({ res }) => ({
+                  body: res.locals,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+    it('wraps array of middlewares', async () => {
+      const expressMiddleware1 = (req, res, next) => {
+        res.locals = 'wor';
+        next();
+      };
+      const expressMiddleware2 = (req, res, next) => {
+        res.locals += 'ks';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        port: getFreePort(),
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                ...wrapMiddleware([
+                  expressMiddleware1,
+                  expressMiddleware2,
+                ]),
+                ({ res }) => ({
+                  body: res.locals,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+  });
+  describe('errorHandler', () => {
+    it('gets error provided to next function by route', async () => {
+      const error = new Error('test error');
+      const errorHandler = jest.fn(() => ({ body: 'works' }));
+      const { app } = await simpleExpress({
+        port: getFreePort(),
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                ({ next }) => next(error),
+              ]
+            },
+          },
+        ],
+        errorHandlers: [
+          errorHandler,
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works');
+
+      expect(errorHandler.mock.calls[0][0]).toBe(error);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+    });
+    it('gets error returned by route', async () => {
+      const error = new Error('test error');
+      const errorHandler = jest.fn(() => ({ body: 'works' }));
+      const { app } = await simpleExpress({
+        port: getFreePort(),
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                () => error,
+              ]
+            },
+          },
+        ],
+        errorHandlers: [
+          errorHandler,
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works');
+
+      expect(errorHandler.mock.calls[0][0]).toBe(error);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+    });
+    it('gets error thrown by route', async () => {
+      const error = new Error('test error');
+      const errorHandler = jest.fn(() => ({ body: 'works' }));
+      const { app } = await simpleExpress({
+        port: getFreePort(),
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                () => {
+                  throw error;
+                },
+              ]
+            },
+          },
+        ],
+        errorHandlers: [
+          errorHandler,
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works');
+
+      expect(errorHandler.mock.calls[0][0]).toBe(error);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
     });
   });
 });

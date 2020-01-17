@@ -271,6 +271,21 @@ simpleExpress({
 });
 ```
 
+You can pass the error to `next` callback, return it or throw. In each case, error handlers will get the error.
+```js
+const handler = ({ next }) => {
+  next(new Error('Error'));
+};
+
+const handler = () => {
+  return new Error('Error');
+};
+
+const handler = () => {
+  throw new Error('Error');
+};
+```
+
 ### Disabling default middlewares
 ```js
 import simpleExpress from 'simple-express';
@@ -332,11 +347,96 @@ simpleExpress({
 })
 ```
 
+### Request validation
+#### Built-in prop-types helper
+```js
+import simpleExpress, { ValidationError, checkPropTypes } from 'simple-express';
+
+const { app } = await simpleExpress({
+  port: 8080,
+  routes: [
+    {
+      path: '/:bam',
+      handlers: {
+        post: [
+          checkPropTypes({
+            body: PropTypes.shape({
+              foo: PropTypes.number,
+              bar: PropTypes.number,
+            }),
+            query: {
+              baz: PropTypes.oneOf(['right']),
+            },
+            params: {
+              bam: PropTypes.oneOf(['correct']),
+            },
+            headers: {
+              custom: PropTypes.oneOf(['notwrong']).isRequired,
+            },
+          }),
+          () => ({
+            body: 'works'
+          })
+        ],
+      },
+    },
+  ],
+  errorHandlers: [
+    (error, { next }) => {
+      if (error instanceof ValidationError) {
+        return {
+          status: 400,
+          body: {
+            message: 'Bad request',
+            errors: error.errors,
+          },
+        };
+      }
+      next();
+    },
+  ],
+});
+```
+
+#### Express-validator
+```js
+import simpleExpress, { wrapMiddleware } from 'simple-express';
+const { check, validationResult } = require('express-validator');
+
+const { app } = await simpleExpress({
+  port: 8080,
+  routes: [
+    {
+      path: '/user',
+      handlers: {
+        post: [
+          ...wrapMiddleware([
+            check('username').isEmail(),
+            check('password').isLength({ min: 5 })
+          ]),
+          ({ req, next }) => {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+              return res.status(400).json({ errors: errors.array() });
+            }
+
+            next();
+          },
+          () => ({
+            body: 'works'
+          })
+        ],
+      },
+    },
+  ],
+});
+```
+
 ### Logging
 This library uses [debug](https://github.com/visionmedia/debug) logging utility.
 
 To enable all logs set the following environment variable:
-```
+```bash
 DEBUG=simpleExpress,simpleExpress:*
 ```
 
@@ -345,3 +445,51 @@ You can enable only some logs:
 - `DEBUG=simpleExpress:request`: Log all requests with response time
 - `DEBUG=simpleExpress:stats`: Simple express statistics, like registered routes, middlewares etc.
 - `DEBUG=simpleExpress:warning`: Unimplemented features and other warning
+
+### Testing the app
+To be able to test your app with tool like supertest, you need to export `app`.
+
+#### app.js
+```js
+import simpleExpress from '../lib';
+
+const runApp = async () => {
+  const { app } = await simpleExpress({
+    port: 8080,
+    routes: [
+      {
+        path: '/',
+        handlers: {
+          get: () => ({ body: 'works' }),
+        }
+      }
+    ],
+  });
+
+  return app;
+};
+
+export default runApp;
+```
+
+#### index.js
+```js
+import runApp from './app';
+
+runApp();
+```
+
+#### app.test.js
+```js
+import request from 'supertest';
+import runApp from '../App';
+
+it('works', async () => {
+  const app = await runApp();
+
+  return request(app)
+    .get('/')
+    .expect(200)
+    .expect('works');
+});
+```
