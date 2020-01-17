@@ -126,6 +126,7 @@ const getStyleLoaders = (cssOptions, preProcessor) => {
 // It compiles slowly and is focused on producing a fast and minimal bundle.
 // The development configuration is different and lives in a separate file.
 module.exports = {
+  target: 'node',
   mode: 'production',
   // Don't attempt to continue if there are any errors.
   bail: true,
@@ -144,7 +145,7 @@ module.exports = {
     chunkFilename: 'index.[chunkhash:8].chunk.js',
     // We inferred the "public path" (such as / or /my-project) from homepage.
     publicPath: publicPath,
-    library: "perfect-immutable",
+    library: "simple-express",
     libraryTarget: 'umd',
     globalObject: "(typeof window !== 'undefined' ? window : this)",
     umdNamedDefine: true,
