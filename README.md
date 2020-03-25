@@ -36,6 +36,7 @@ The simpleExpress accepts `routes` array. Each element in that array is an objec
     - **getHeader**: *function* Alias for get()
     - **next**: *function* Express' next function, triggers next middleware
     - **req**: *object* Express' req object
+
 Routes can also be an object with paths as keys and handlers object|array as values or array of arrays where first element is path and second is object of handlers (see examples below)
 
 ### Response
