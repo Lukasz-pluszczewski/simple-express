@@ -2,7 +2,7 @@
 ### Basic usage
 You can run the server just by executing the simpleExpress function.
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 
 simpleExpress({
   port: 8080,
@@ -68,7 +68,7 @@ The error handler is a function that gets the following arguments:
 ## Usage examples
 ### Hello world
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 
 simpleExpress({
   port: 8080,
@@ -139,7 +139,7 @@ simpleExpress({
 
 ### Simple users CRUD
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 import users from 'users';
 
 simpleExpress({
@@ -213,7 +213,7 @@ simpleExpress({
 
 ### Adding authentication
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 import verifyToken from 'verifyToken';
 
 simpleExpress({
@@ -238,7 +238,7 @@ simpleExpress({
 
 ### Adding authentication to one route only
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 import users from 'users';
 import verifyToken from 'verifyToken';
 
@@ -278,7 +278,7 @@ simpleExpress({
 
 ### Error handling
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 import users from 'users';
 import NotFoundError from 'errors/NotFoundError';
 
@@ -343,7 +343,7 @@ const handler = () => {
 
 ### Disabling default middlewares
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 
 simpleExpress({
   port: 8080,
@@ -360,7 +360,7 @@ simpleExpress({
 ### Applying express middlewares
 Cors ({origin: true, credentials: true, exposedHeaders: ['Link', 'Jwt']}) and JSON body parser ({limit: '300kb'}) are configured by default
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 import cookieParser from 'cookie-parser';
 
 simpleExpress({
@@ -376,7 +376,7 @@ simpleExpress({
 
 ### Sending response manually
 ```js
-import simpleExpress from 'simple-express';
+import simpleExpress from 'simple-express-framework';
 
 simpleExpress({
   port: 8080,

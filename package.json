@@ -1,6 +1,6 @@
 {
-  "name": "simple-express",
-  "version": "1.0.0",
+  "name": "simple-express-framework",
+  "version": "1.0.1",
   "main": "build/index.js",
   "scripts": {
     "start": "node scripts/start.js",
