@@ -69,7 +69,7 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
 
 const simpleExpress = async({
   port,
-  routes = [],
+  rawRoutes = [],
   simpleExpressMiddlewares = [],
   errorHandlers = [],
   expressMiddlewares = [],
@@ -117,19 +117,26 @@ const simpleExpress = async({
   });
 
   // applying routes
-  routes.forEach(({ handlers, path, validate }) => {
-    if (path.indexOf('/') !== 0 && path !== '*') {
-      log.warning(`Path "${path}" does not start with "/"`);
-    }
-    forEach(handlers, (handler, method) => {
-      if (!Array.isArray(handler)) {
-        handler = [handler];
-      }
-
-      stats.registerEvent('registeringRoute', { path, method: mapMethod(method), numberOfHandlers: handler.length, names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name) });
-      app[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
-    });
+  const routes = Array.isArray(rawRoutes) ? rawRoutes : Object.keys(rawRoutes).map(path => {
+    return { path, handlers: rawRoutes[path] };
   });
+  if (Array.isArray(routes)) {
+    routes.forEach(route => {
+      const { handlers, path } = Array.isArray(route) ? { path: route[0], handlers: route[1] } : route;
+
+      if (path.indexOf('/') !== 0 && path !== '*') {
+        log.warning(`Path "${path}" does not start with "/"`);
+      }
+      forEach(handlers, (handler, method) => {
+        if (!Array.isArray(handler)) {
+          handler = [handler];
+        }
+
+        stats.registerEvent('registeringRoute', { path, method: mapMethod(method), numberOfHandlers: handler.length, names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name) });
+        app[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
+      });
+    });
+  }
 
   // applying error handlers
   stats.set('errorHandlers', errorHandlers.length);

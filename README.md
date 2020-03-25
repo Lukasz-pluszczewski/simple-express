@@ -36,6 +36,7 @@ The simpleExpress accepts `routes` array. Each element in that array is an objec
     - **getHeader**: *function* Alias for get()
     - **next**: *function* Express' next function, triggers next middleware
     - **req**: *object* Express' req object
+Routes can also be an object with paths as keys and handlers object|array as values or array of arrays where first element is path and second is object of handlers (see examples below)
 
 ### Response
 To send a response from route handler just return an object (or Promise that wil resolve to an object) with the following fields:
@@ -81,6 +82,60 @@ simpleExpress({
   ],
 })
 ```
+
+### Routes formats:
+#### Array of objects
+```js
+
+simpleExpress({
+  routes: [
+    {
+      path: '/foo',
+      handlers: {
+        get: [authenticate, () => ({ body: 'some data' })],
+        post: [authenticate, () => ({ status: 201 })],
+      },
+    },
+    {
+      path: '/bar/:baz',
+      handlers: {
+        get: ({ params }) => ({ body: `Got ${params.baz}` }),
+      },
+    },
+  ],
+});
+```
+
+#### Array of arrays
+```js
+simpleExpress({
+  routes: [
+    ['/foo', {
+      get: [authenticate, () => ({ body: 'some data' })]
+      post: [authenticate, () => ({ status: 201 })]
+    }],
+    ['/bar/:baz', { get: ({ params }) => ({ body: `Got ${params.baz}` }) }]
+  ]
+});
+```
+
+#### Object of objects
+**Warning** Object keys' order is preserved only for string and symbols keys, not for integers (integers, including in strings like "1", will always be before all other keys)!
+```js
+
+simpleExpress({
+  routes: {
+    '/foo': {
+      get: [authenticate, () => ({ body: 'some data' })]
+      post: [authenticate, () => ({ status: 201 })]
+    },
+    '/bar/:baz': {
+      get: ({ params }) => ({ body: `Got ${params.baz}` }),
+    },
+  },
+});
+```
+
 
 ### Simple users CRUD
 ```js
