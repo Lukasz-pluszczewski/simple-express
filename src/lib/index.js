@@ -50,7 +50,16 @@ const mapMethod = method => method.toLowerCase();
 const createSimpleExpressHelper = ({ routes, routeParams }) => {
   return {
     runRoute: async(label, method, data) => {
-      const route = _.find(routes, { label });
+      if (!Array.isArray(routes)) {
+        log.warning(`Only "array of objects" style routes are supported by runRoute helper`);
+        return Promise.reject();
+      }
+      const route = _.find(routes, route => {
+        if (Array.isArray(route)) {
+          log.warning(`Only "array of objects" style routes are supported by runRoute helper`);
+          return Promise.reject();
+        }
+      });
       if (!route) {
         return Promise.reject();
       }
@@ -88,7 +97,7 @@ const simpleExpress = async({
   app.server = server;
 
   // creating simpleExpress helper utility
-  const simpleExpressHelper = await createSimpleExpressHelper({ routes, routeParams });
+  const simpleExpressHelper = await createSimpleExpressHelper({ rawRoutes, routeParams });
 
   // applying default middlewares
   const config = getDefaultConfig(userConfig);
@@ -123,7 +132,6 @@ const simpleExpress = async({
   if (Array.isArray(routes)) {
     routes.forEach(route => {
       const { handlers, path } = Array.isArray(route) ? { path: route[0], handlers: route[1] } : route;
-
       if (path.indexOf('/') !== 0 && path !== '*') {
         log.warning(`Path "${path}" does not start with "/"`);
       }
@@ -131,7 +139,6 @@ const simpleExpress = async({
         if (!Array.isArray(handler)) {
           handler = [handler];
         }
-
         stats.registerEvent('registeringRoute', { path, method: mapMethod(method), numberOfHandlers: handler.length, names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name) });
         app[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
       });

@@ -47,59 +47,123 @@ describe('simpleExpress', () => {
       .expect('works')
       .expect(200);
   });
-  describe('route', () => {
-    it('returns string body and status code', async () => {
-      const { app } = await simpleExpress({
-        port: getFreePort(),
-        routes: [
-          {
-            path: '/',
-            handlers: {
-              get: () => ({
-                body: 'works',
-                status: 201,
-              }),
-            },
-          },
-          {
-            path: '/foo',
-            handlers: {
-              get: [
-                ({ getHeader, next }) => {
-                  if (getHeader('authentication') !== 'token') {
-                    return {
-                      status: 401,
-                      body: 'unauthenticated',
-                    };
-                  }
 
-                  next();
-                },
-                () => ({
-                  body: 'authenticated',
-                }),
-              ],
-            },
+  describe('route', () => {
+    const routeStyles = {
+      arrayOfObjects: [
+        {
+          path: '/',
+          handlers: {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        },
+        {
+          path: '/foo',
+          handlers: {
+            get: [
+              ({ getHeader, next }) => {
+                if (getHeader('authentication') !== 'token') {
+                  return {
+                    status: 401,
+                    body: 'unauthenticated',
+                  };
+                }
+
+                next();
+              },
+              () => ({
+                body: 'authenticated',
+              }),
+            ],
+          },
+        },
+      ],
+      arrayOfArrays: [
+        [
+          '/',
+          {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
           },
         ],
+        [
+          '/foo',
+          {
+            get: [
+              ({ getHeader, next }) => {
+                if (getHeader('authentication') !== 'token') {
+                  return {
+                    status: 401,
+                    body: 'unauthenticated',
+                  };
+                }
+
+                next();
+              },
+              () => ({
+                body: 'authenticated',
+              }),
+            ],
+          },
+        ],
+      ],
+      objectOfObjects: {
+        '/': {
+          get: () => ({
+            body: 'works',
+            status: 201,
+          }),
+        },
+        '/foo': {
+          get: [
+            ({ getHeader, next }) => {
+              if (getHeader('authentication') !== 'token') {
+                return {
+                  status: 401,
+                  body: 'unauthenticated',
+                };
+              }
+
+              next();
+            },
+            () => ({
+              body: 'authenticated',
+            }),
+          ],
+        },
+      },
+    };
+
+    Object.keys(routeStyles).forEach(routeStyle => {
+      it(`returns string body and status code with routes in ${routeStyle} format`, async () => {
+        const { app } = await simpleExpress({
+          port: getFreePort(),
+          routes: routeStyles[routeStyle],
+        });
+
+        await request(app)
+          .get('/')
+          .expect(201)
+          .expect('works');
+
+        await request(app)
+          .get('/foo')
+          .set('authentication', 'token')
+          .expect(200)
+          .expect('authenticated');
+
+        return request(app)
+          .get('/foo')
+          .expect(401)
+          .expect('unauthenticated');
       });
-
-      await request(app)
-        .get('/')
-        .expect(201)
-        .expect('works');
-
-      await request(app)
-        .get('/foo')
-        .set('authentication', 'token')
-        .expect(200)
-        .expect('authenticated');
-
-      return request(app)
-        .get('/foo')
-        .expect(401)
-        .expect('unauthenticated');
     });
+
     it('returns json body', async () => {
       const { app } = await simpleExpress({
         port: getFreePort(),
