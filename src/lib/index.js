@@ -69,7 +69,7 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
 
 const simpleExpress = async({
   port,
-  rawRoutes = [],
+  routes: rawRoutes = [],
   simpleExpressMiddlewares = [],
   errorHandlers = [],
   expressMiddlewares = [],
