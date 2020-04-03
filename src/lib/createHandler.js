@@ -19,6 +19,7 @@ export const createHandler = (additionalParams = {}, simpleExpress) => handler =
       xhr: req.xhr,
       get: headerName => req.get(headerName),
       getHeader: headerName => req.get(headerName),
+      locals: res.locals,
       next,
       req,
       res,
@@ -42,11 +43,13 @@ export const createErrorHandler = (additionalParams = {}, simpleExpress) => hand
     result = await handler(error, {
       body: req.body,
       query: req.query,
-      params: req.params,
+      // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
       originalUrl: req.originalUrl,
       protocol: req.protocol,
       xhr: req.xhr,
       get: req.get,
+      getHeader: headerName => req.get(headerName),
+      locals: res.locals,
       next,
       req,
       res,

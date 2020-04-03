@@ -505,13 +505,14 @@ You can enable only some logs:
 ### Testing the app
 To be able to test your app with tool like supertest, you need to export `app`.
 
+Note that you don't have to pass the "port" parameter to simpleExpress function. App will not listen on any port but you will be able to test it using supertest.
+
 #### app.js
 ```js
 import simpleExpress from '../lib';
 
 const runApp = async () => {
   const { app } = await simpleExpress({
-    port: 8080,
     routes: [
       {
         path: '/',
@@ -549,3 +550,12 @@ it('works', async () => {
     .expect('works');
 });
 ```
+
+## Changelog
+
+### 1.0.3
+- Exposed res.locals to route handlers and error handlers as "locals"
+- Added more tests for error handlers
+
+### 1.0.2
+Minor fixes

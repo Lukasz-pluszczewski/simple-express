@@ -49,7 +49,11 @@ const getStats = port => {
     },
     getEvents: eventName => stats.events[eventName],
     logStartup: () => {
-      log.stats(`-->Stats for simpleExpress app on ${port} port:<--`);
+      if (port) {
+        log.stats(`-->Stats for simpleExpress app on ${port} port:<--`);
+      } else {
+        log.stats(`-->Stats for simpleExpress app (no port):<--`);
+      }
       logDefaultMiddlewares(statsInstance);
       if (statsInstance.getCounter('expressMiddlewares')) {
         log.stats(`  Registered ${statsInstance.getCounter('expressMiddlewares')} expressMiddleware${statsInstance.getCounter('expressMiddlewares') > 1 ? 's' : ''}`);

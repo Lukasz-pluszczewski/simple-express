@@ -87,7 +87,11 @@ const simpleExpress = async({
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
 }) => {
-  log(`Initializing simpleExpress app on port ${port}...`);
+  if (port) {
+    log(`Initializing simpleExpress app on port ${port}...`);
+  } else {
+    log(`Initializing simpleExpress app (no port)...`);
+  }
   // create stats
   const stats = getStats(port);
 
@@ -152,15 +156,21 @@ const simpleExpress = async({
   });
 
   // starting actual server
-  app.server.listen(port);
+  if (port) {
+    app.server.listen(port);
+  }
 
-  if (!app.server.address()) {
+  if (port && !app.server.address()) {
     log(`ERROR: App started but app.server.address() is undefined. It seems that the ${port} port is already used.`);
     throw new Error(`App started but it doesn't seem to listen on any port. Check if port ${port} is not already used.`);
   }
 
   stats.logStartup();
-  log(`App is listening on port ${port}`);
+  if (port) {
+    log(`App is listening on port ${port}`);
+  } else {
+    log(`App started. Not listening on any port.`);
+  }
 
   return { app, server, stats };
 };
