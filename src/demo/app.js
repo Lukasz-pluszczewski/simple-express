@@ -1,4 +1,5 @@
 import simpleExpress from '../lib';
+import forEach from 'lodash/forEach';
 
 const runApp = async () => {
   const { app } = await simpleExpress({
@@ -17,3 +18,9 @@ const runApp = async () => {
 };
 
 export default runApp;
+
+const routes = [
+
+]
+
+const collection = [];

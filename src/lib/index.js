@@ -2,11 +2,12 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import forEach from 'lodash/forEach';
+import cookieParser from 'cookie-parser';
 import _ from 'lodash';
 
 import log from './log';
 import getStats from './stats';
+import buildRoutes from './buildRoutes';
 import { createHandler, createErrorHandler } from './createHandler';
 import propTypesMiddleware from './propTypesMiddleware';
 
@@ -23,29 +24,27 @@ export class ValidationError extends Error {
 }
 
 const getDefaultConfig = (userConfig, defaultConfig = {
-  cors: {
-    origin: true,
-    credentials: true,
-    exposedHeaders: ['Link', 'Jwt'],
-  },
-  jsonBodyParser: {
-    limit: '300kb',
-  },
+  cors: null,
+  jsonBodyParser: null,
+  cookieParser: [],
 }) => {
   const config = {};
   if (!config) {
     return defaultConfig;
   }
 
-  const { cors = defaultConfig.cors, jsonBodyParser = defaultConfig.jsonBodyParser } = config;
+  const {
+    cors = defaultConfig.cors,
+    jsonBodyParser = defaultConfig.jsonBodyParser,
+    cookieParser = defaultConfig.cookieParser,
+  } = config;
 
   return {
     cors,
     jsonBodyParser,
+    cookieParser,
   };
 };
-
-const mapMethod = method => method.toLowerCase();
 
 const createSimpleExpressHelper = ({ routes, routeParams }) => {
   return {
@@ -78,7 +77,7 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
 
 const simpleExpress = async({
   port,
-  routes: rawRoutes = [],
+  routes = [],
   simpleExpressMiddlewares = [],
   errorHandlers = [],
   expressMiddlewares = [],
@@ -101,7 +100,7 @@ const simpleExpress = async({
   app.server = server;
 
   // creating simpleExpress helper utility
-  const simpleExpressHelper = await createSimpleExpressHelper({ rawRoutes, routeParams });
+  const simpleExpressHelper = await createSimpleExpressHelper({ routes, routeParams });
 
   // applying default middlewares
   const config = getDefaultConfig(userConfig);
@@ -114,6 +113,11 @@ const simpleExpress = async({
   if (config.jsonBodyParser) {
     stats.set('jsonBodyParser');
     app.use(bodyParser.json(config.jsonBodyParser));
+  }
+
+  if (config.cookieParser) {
+    stats.set('cookieParser');
+    app.use(cookieParser);
   }
 
   const createHandlerWithParams = createHandler(routeParams, simpleExpressHelper);
@@ -130,24 +134,11 @@ const simpleExpress = async({
   });
 
   // applying routes
-  const routes = Array.isArray(rawRoutes) ? rawRoutes : Object.keys(rawRoutes).map(path => {
-    return { path, handlers: rawRoutes[path] };
-  });
-  if (Array.isArray(routes)) {
-    routes.forEach(route => {
-      const { handlers, path } = Array.isArray(route) ? { path: route[0], handlers: route[1] } : route;
-      if (path.indexOf('/') !== 0 && path !== '*') {
-        log.warning(`Path "${path}" does not start with "/"`);
-      }
-      forEach(handlers, (handler, method) => {
-        if (!Array.isArray(handler)) {
-          handler = [handler];
-        }
-        stats.registerEvent('registeringRoute', { path, method: mapMethod(method), numberOfHandlers: handler.length, names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name) });
-        app[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
-      });
-    });
-  }
+  app.use(buildRoutes({
+    app,
+    stats,
+    createHandlerWithParams,
+  })(routes));
 
   // applying error handlers
   stats.set('errorHandlers', errorHandlers.length);

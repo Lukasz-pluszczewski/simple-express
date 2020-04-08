@@ -60,7 +60,7 @@ describe('simpleExpress', () => {
           },
         },
         {
-          path: '/foo',
+          path: '/foo/bar',
           handlers: {
             get: [
               ({ getHeader, next }) => {
@@ -91,7 +91,7 @@ describe('simpleExpress', () => {
           },
         ],
         [
-          '/foo',
+          '/foo/bar',
           {
             get: [
               ({ getHeader, next }) => {
@@ -118,7 +118,7 @@ describe('simpleExpress', () => {
             status: 201,
           }),
         },
-        '/foo': {
+        '/foo/bar': {
           get: [
             ({ getHeader, next }) => {
               if (getHeader('authentication') !== 'token') {
@@ -136,6 +136,333 @@ describe('simpleExpress', () => {
           ],
         },
       },
+      arrayOfObjectsNested: [
+        {
+          path: '/',
+          handlers: {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        },
+        {
+          path: '/foo',
+          routes: [
+            {
+              path: '/bar',
+              handlers: {
+                get: [
+                  ({ getHeader, next }) => {
+                    if (getHeader('authentication') !== 'token') {
+                      return {
+                        status: 401,
+                        body: 'unauthenticated',
+                      };
+                    }
+
+                    next();
+                  },
+                  () => ({
+                    body: 'authenticated',
+                  }),
+                ],
+              },
+            }
+          ],
+        },
+      ],
+      arrayOfObjectsNestedObjectOfObjects: [
+        {
+          path: '/',
+          handlers: {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        },
+        {
+          path: '/foo',
+          routes: {
+            '/bar': {
+              get: [
+                ({ getHeader, next }) => {
+                  if (getHeader('authentication') !== 'token') {
+                    return {
+                      status: 401,
+                      body: 'unauthenticated',
+                    };
+                  }
+
+                  next();
+                },
+                () => ({
+                  body: 'authenticated',
+                }),
+              ],
+            },
+          },
+        },
+      ],
+      arrayOfArraysNested: [
+        [
+          '/',
+          {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        ],
+        [
+          '/foo',
+          [
+            '/bar',
+            {
+              get: [
+                ({ getHeader, next }) => {
+                  if (getHeader('authentication') !== 'token') {
+                    return {
+                      status: 401,
+                      body: 'unauthenticated',
+                    };
+                  }
+
+                  next();
+                },
+                () => ({
+                  body: 'authenticated',
+                }),
+              ],
+            },
+          ],
+        ],
+      ],
+      arrayOfArraysNested2: [
+        [
+          '/',
+          {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        ],
+        [
+          '/foo',
+          [
+            [
+              '/bar',
+              {
+                get: [
+                  ({ getHeader, next }) => {
+                    if (getHeader('authentication') !== 'token') {
+                      return {
+                        status: 401,
+                        body: 'unauthenticated',
+                      };
+                    }
+
+                    next();
+                  },
+                  () => ({
+                    body: 'authenticated',
+                  }),
+                ],
+              },
+            ]
+          ],
+        ],
+      ],
+      arrayOfArraysNestedObjectOfObjects: [
+        [
+          '/',
+          {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        ],
+        [
+          '/foo',
+          {
+            '/bar': {
+              get: [
+                ({ getHeader, next }) => {
+                  if (getHeader('authentication') !== 'token') {
+                    return {
+                      status: 401,
+                      body: 'unauthenticated',
+                    };
+                  }
+
+                  next();
+                },
+                () => ({
+                  body: 'authenticated',
+                }),
+              ],
+            },
+          },
+        ],
+      ],
+      objectOfObjectsNested: {
+        '/': {
+          get: () => ({
+            body: 'works',
+            status: 201,
+          }),
+        },
+        '/foo': {
+          '/bar': {
+            get: [
+              ({ getHeader, next }) => {
+                if (getHeader('authentication') !== 'token') {
+                  return {
+                    status: 401,
+                    body: 'unauthenticated',
+                  };
+                }
+
+                next();
+              },
+              () => ({
+                body: 'authenticated',
+              }),
+            ],
+          },
+        },
+      },
+      objectOfArraysNested: {
+        '/': {
+          get: () => ({
+            body: 'works',
+            status: 201,
+          }),
+        },
+        '/foo': [
+          '/bar',
+          {
+            get: [
+              ({ getHeader, next }) => {
+                if (getHeader('authentication') !== 'token') {
+                  return {
+                    status: 401,
+                    body: 'unauthenticated',
+                  };
+                }
+
+                next();
+              },
+              () => ({
+                body: 'authenticated',
+              }),
+            ],
+          },
+        ],
+      },
+      objectOfArraysNested2: {
+        '/': {
+          get: () => ({
+            body: 'works',
+            status: 201,
+          }),
+        },
+        '/foo': [
+          [
+            '/bar',
+            {
+              get: [
+                ({ getHeader, next }) => {
+                  if (getHeader('authentication') !== 'token') {
+                    return {
+                      status: 401,
+                      body: 'unauthenticated',
+                    };
+                  }
+
+                  next();
+                },
+                () => ({
+                  body: 'authenticated',
+                }),
+              ],
+            },
+          ],
+        ]
+      },
+      arrayOfArraysNestedWithMiddleware: [
+        [
+          '/',
+          {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        ],
+        [
+          '/foo',
+          [
+            ({ getHeader, next }) => {
+              if (getHeader('authentication') !== 'token') {
+                return {
+                  status: 401,
+                  body: 'unauthenticated',
+                };
+              }
+
+              next();
+            },
+            [
+              '/bar',
+              {
+                get: [
+                  () => ({
+                    body: 'authenticated',
+                  }),
+                ],
+              },
+            ]
+          ],
+        ],
+      ],
+      arrayOfArraysNestedWithMiddleware2: [
+        [
+          '/',
+          {
+            get: () => ({
+              body: 'works',
+              status: 201,
+            }),
+          },
+        ],
+        [
+          '/foo',
+          ({ getHeader, next }) => {
+            if (getHeader('authentication') !== 'token') {
+              return {
+                status: 401,
+                body: 'unauthenticated',
+              };
+            }
+
+            next();
+          },
+          [
+            '/bar',
+            {
+              get: [
+                () => ({
+                  body: 'authenticated',
+                }),
+              ],
+            },
+          ]
+        ],
+      ],
     };
 
     Object.keys(routeStyles).forEach(routeStyle => {
@@ -150,13 +477,13 @@ describe('simpleExpress', () => {
           .expect('works');
 
         await request(app)
-          .get('/foo')
+          .get('/foo/bar')
           .set('authentication', 'token')
           .expect(200)
           .expect('authenticated');
 
         return request(app)
-          .get('/foo')
+          .get('/foo/bar')
           .expect(401)
           .expect('unauthenticated');
       });
