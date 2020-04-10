@@ -3,6 +3,8 @@ import freePort from 'find-free-port';
 import simpleExpress, { ValidationError, checkPropTypes, wrapMiddleware } from '../index';
 import PropTypes from 'prop-types';
 
+import { routeStyles } from './testData/routes';
+
 describe('simpleExpress', () => {
   let freePorts = [];
   const getFreePort = () => freePorts.shift();
@@ -48,96 +50,6 @@ describe('simpleExpress', () => {
   });
 
   describe('route', () => {
-    const routeStyles = {
-      arrayOfObjects: [
-        {
-          path: '/',
-          handlers: {
-            get: () => ({
-              body: 'works',
-              status: 201,
-            }),
-          },
-        },
-        {
-          path: '/foo',
-          handlers: {
-            get: [
-              ({ getHeader, next }) => {
-                if (getHeader('authentication') !== 'token') {
-                  return {
-                    status: 401,
-                    body: 'unauthenticated',
-                  };
-                }
-
-                next();
-              },
-              () => ({
-                body: 'authenticated',
-              }),
-            ],
-          },
-        },
-      ],
-      arrayOfArrays: [
-        [
-          '/',
-          {
-            get: () => ({
-              body: 'works',
-              status: 201,
-            }),
-          },
-        ],
-        [
-          '/foo',
-          {
-            get: [
-              ({ getHeader, next }) => {
-                if (getHeader('authentication') !== 'token') {
-                  return {
-                    status: 401,
-                    body: 'unauthenticated',
-                  };
-                }
-
-                next();
-              },
-              () => ({
-                body: 'authenticated',
-              }),
-            ],
-          },
-        ],
-      ],
-      objectOfObjects: {
-        '/': {
-          get: () => ({
-            body: 'works',
-            status: 201,
-          }),
-        },
-        '/foo': {
-          get: [
-            ({ getHeader, next }) => {
-              if (getHeader('authentication') !== 'token') {
-                return {
-                  status: 401,
-                  body: 'unauthenticated',
-                };
-              }
-
-              next();
-            },
-            () => ({
-              body: 'authenticated',
-            }),
-          ],
-        },
-      },
-    };
-
     Object.keys(routeStyles).forEach(routeStyle => {
       it(`returns string body and status code with routes in ${routeStyle} format`, async () => {
         const { app } = await simpleExpress({
@@ -150,13 +62,13 @@ describe('simpleExpress', () => {
           .expect('works');
 
         await request(app)
-          .get('/foo')
+          .get('/foo/bar')
           .set('authentication', 'token')
           .expect(200)
           .expect('authenticated');
 
         return request(app)
-          .get('/foo')
+          .get('/foo/bar')
           .expect(401)
           .expect('unauthenticated');
       });
@@ -397,7 +309,7 @@ describe('simpleExpress', () => {
             path: '/',
             handlers: {
               get: [
-                ...wrapMiddleware([
+                wrapMiddleware([
                   expressMiddleware1,
                   expressMiddleware2,
                 ]),

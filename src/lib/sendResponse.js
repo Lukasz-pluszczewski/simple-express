@@ -13,13 +13,18 @@ const sendResponse = (req, res, result) => {
   const {
     body = null,
     status,
-    format,
+    method,
     redirect = false,
     headers = null,
+    type = null,
   } = result;
 
-  const responseMethod = getResponseMethod(format, body);
+  const responseMethod = getResponseMethod(method, body);
   if (responseMethod) {
+    if (type) {
+      res.type(type);
+    }
+
     if (headers) {
       res.set(headers);
     }

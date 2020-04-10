@@ -26,9 +26,12 @@ const getStats = port => {
     if (statsInstance.getCounter('jsonBodyParser')) {
       logMessages.push('bodyParser.json');
     }
+    if (statsInstance.getCounter('cookieParser')) {
+      logMessages.push('cookie-parser');
+    }
 
     if (logMessages.length) {
-      log.stats(`  Used built-in middlewares: ${logMessages.join(' and ')}`);
+      log.stats(`  Used built-in middlewares: ${logMessages.join(', ')}`);
     }
   };
 
@@ -66,7 +69,7 @@ const getStats = port => {
       }
 
       if (!statsInstance.getCounter('routes')) {
-        return log.stats(`  No routes regitered`);
+        return log.stats(`  No routes registered`);
       }
       log.stats(`  Registered ${statsInstance.getCounter('routes')} routes with ${statsInstance.getCounter('routeHandlers')} handlers:`);
       const mappedRoutes = new Set();
