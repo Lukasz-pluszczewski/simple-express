@@ -31,7 +31,7 @@ const getStats = port => {
     }
 
     if (logMessages.length) {
-      log.stats(`  Used built-in middlewares: ${logMessages.join(' and ')}`);
+      log.stats(`  Used built-in middlewares: ${logMessages.join(', ')}`);
     }
   };
 

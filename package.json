@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
-    "demo-legacy": "node scripts/demo.js",
+    "demo": "node -r @babel/register src/demo/index.js",
     "test": "node scripts/test.js",
     "prepare": "npm run build"
   },
@@ -29,6 +29,7 @@
     "@babel/plugin-proposal-class-properties": "^7.4.0",
     "@babel/preset-env": "^7.4.3",
     "@babel/preset-react": "^7.0.0",
+    "@babel/register": "^7.9.0",
     "@svgr/webpack": "4.2.0",
     "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "10.0.1",
@@ -139,7 +140,7 @@
     "cors": "^2.8.5",
     "debug": "^4.1.1",
     "express": "^4.17.1",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.11",
     "prop-types": "^15.7.2"
   }
 }

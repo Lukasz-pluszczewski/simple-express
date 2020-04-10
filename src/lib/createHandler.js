@@ -14,6 +14,7 @@ export const createHandler = (additionalParams = {}, simpleExpress) => handler =
       body: req.body,
       query: req.query,
       params: req.params,
+      method: req.method,
       originalUrl: req.originalUrl,
       protocol: req.protocol,
       xhr: req.xhr,
@@ -44,6 +45,7 @@ export const createErrorHandler = (additionalParams = {}, simpleExpress) => hand
       body: req.body,
       query: req.query,
       // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
+      method: req.method,
       originalUrl: req.originalUrl,
       protocol: req.protocol,
       xhr: req.xhr,

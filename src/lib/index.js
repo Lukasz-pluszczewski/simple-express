@@ -10,6 +10,7 @@ import getStats from './stats';
 import buildRoutes from './buildRoutes';
 import { createHandler, createErrorHandler } from './createHandler';
 import propTypesMiddleware from './propTypesMiddleware';
+import handleError from './handleError.js';
 
 export const checkPropTypes = propTypesMiddleware;
 
@@ -85,7 +86,7 @@ const simpleExpress = async({
   routeParams = {},
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-}) => {
+} = {}) => {
   if (port) {
     log(`Initializing simpleExpress app on port ${port}...`);
   } else {
@@ -105,19 +106,19 @@ const simpleExpress = async({
   // applying default middlewares
   const config = getDefaultConfig(userConfig);
 
-  if (config.cors) {
+  if (config.cors !== false) {
     stats.set('cors');
     app.use(cors(config.cors));
   }
 
-  if (config.jsonBodyParser) {
+  if (config.jsonBodyParser !== false) {
     stats.set('jsonBodyParser');
     app.use(bodyParser.json(config.jsonBodyParser));
   }
 
-  if (config.cookieParser) {
+  if (config.cookieParser !== false) {
     stats.set('cookieParser');
-    app.use(cookieParser);
+    app.use(cookieParser(config.cookieParser));
   }
 
   const createHandlerWithParams = createHandler(routeParams, simpleExpressHelper);
@@ -176,5 +177,7 @@ export const wrapMiddleware = middleware => {
     middleware(req, res, next);
   }
 };
+
+export { handleError };
 
 export default simpleExpress;

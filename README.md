@@ -1,68 +1,30 @@
-## Usage
-### Usage example - Simple users CRUD
+# Simple Express framework
+> Simple micro framework based on Express, allowing you to prototype APIs blazingly quickly
+
+Micro-framework that let's you create more readable route structure, use simple async functions as route handlers, with clear error handling and run fully functional express app in seconds.
+
+## Getting started
+### Install the library
+`npm i simple-express-framework`
+
+### Run the hello-world app
 ```js
 import simpleExpress from 'simple-express-framework';
-import protect from 'authenticate';
-import connectDB from 'connectDB';
-import createUsersRepository from 'usersRepository';
-
-const DB = connectDB();
-const usersRepository = createUsersRepository(db);
 
 simpleExpress({
   port: 8080,
   routeParams: { usersRepository },
   routes: [
-    ['/users', {
-      get: async ({ query: { search }, usersRepository }) => {
-        const allUsers = await usersRepository.getAll(search);
-
-        return {
-          body: allUsers,
-        };
-      },
-      post: async ({ body, usersRepository }) => {
-        const results = await usersRepository.create(body);
-
-        return {
-          status: 201,
-          body: results,
-        };
-    }],
-    ['users/:id', {
-      get: async ({ params: { id }, usersRepository }) => {
-        const user = await usersRepository.getById(id);
-
-        if (user) {
-          return {
-            body: user,
-          };
-        }
-
-        return {
-          status: 404,
-          body: 'User not found',
-        };
-      },
-      put: async ({ params: { id }, body, usersRepository }) => {
-        const { id } = params;
-        const result = await usersRepository.updateById(id, body);
-
-        if (result) {
-          return {
-            status: 204,
-          };
-        }
-
-        return {
-          status: 404,
-          body: 'User not found',
-        };
-      },
+    ['/hello', {
+      get: () => ({ status: 200, body: 'Hello world' }),
     }],
   ],
-})
+});
 ```
+
+And that's all! Express server, listening on chosen port, with reasonable default settings is up and running in seconds!
+
+But that's not all! Dive in in the examples section to see the power of simple and readable route handlers, clear error handling and more - everything just works!
 
 ### SimpleExpress function
 You run the app by executing simpleExpress function. All options are optional.
@@ -102,6 +64,7 @@ SimpleExpress handlers are similar to express handlers except they accept one ar
 - **body**: *any* Request's body (by default, the json parser is enabled)
 - **query**: *object* Request's query parameters
 - **params**: *object* Route params
+- **method**: *string* Request's method
 - **originalUrl**: *string* Request's original url
 - **protocol**: *string* Request's protocol
 - **xhr**: *boolean* Flag indicating the request is XHR request
@@ -203,11 +166,25 @@ All handlers can work as middlewares if they trigger next() instead of returning
 ```
 
 ### Error Handlers
-All errors are being caught by the simpleExpress and passed to error handlers.
+All errors are being caught by the simpleExpress and passed to error handlers. Error handlers are identical to handlers, except they receive error as first argument, and object of handler parameters as second. To pass an error to error handlers you can trigger `next()` with an error as an argument, throw an error, or return an error in a handler.
 
-Error handlers are identical to handlers, except they receive error as first argument, and object of params as second.
+Please note, that handler parameters object is exactly the same as in case of handlers, except 'params' field which is for whatever reason stripped by express.
 
 ```
+routes: [
+  ['/foo', {
+    get: () => {
+      throw new AuthenticationError();
+    }
+  }],
+  ['/bar', {
+    get: () => new AuthenticationError(),
+  }],
+  ['/baz', {
+    get: ({ next }) => next(new AuthenticationError()),
+  }]
+]
+
 errorHandlers: [
   (error, { next }) => {
     if (error instanceOf AuthenticationError) {
@@ -268,7 +245,7 @@ simpleExpress({
 ```
 
 #### Object of objects
-**Warning** Object keys' order is preserved only for string and symbols keys, not for integers (integers, including in strings like "1", will always be before all other keys)!
+**Warning:** Object keys' order is preserved only for string and symbols keys, not for integers (integers, including in strings like "1", will always be before all other keys)!
 ```js
 
 simpleExpress({
@@ -284,8 +261,42 @@ simpleExpress({
 });
 ```
 
+#### Reserved object keys
+Because object keys can be used as route paths but also as method names (like get, post etc.) or as names like path, handlers and routes here is the list of reserved key names that can't be used as route paths:
+
+Please note that all of those can be used with slash at the beginning like `/path`. Only exactly listed strings are reserved.
+- path
+- handlers
+- routes
+- get
+- post
+- put
+- delete
+- del
+- options
+- patch
+- head
+- checkout
+- copy
+- lock
+- merge
+- mkactivity
+- mkcol
+- move
+- m-search
+- notify
+- purge
+- report
+- search
+- subscribe
+- trace
+- unlock
+- unsubscribe
+
+If you need to register a route with one of these strings as path, you can use one of the other route formats.
+
 ### Config
-By default, JSON body parser and cors middlewares are configured. You can change their configuration or disable them.
+By default, JSON body parser, cors and cookie parser middlewares are configured. You can change their configuration or disable them.
 `config` object consist of the following fields:
 - **cors**: *object|false* cors config. If set to `false`, the cors middleware will not by applied.
 - **jsonBodyParser**: *object|false* JSON body parser config. If set to `false` the body parser middleware will not be applied.
@@ -295,7 +306,7 @@ By default, JSON body parser and cors middlewares are configured. You can change
 Global middlewares can be added in `globalMiddleware` field. It is array of handlers (each handlers looks exactly like route handlers, with the same parameters).
 If you need to use express middlewares directly, you can pass them to expressMiddlewares array.
 
-## Usage examples
+## More usage examples
 ### Hello world
 ```js
 import simpleExpress from 'simple-express-framework';
@@ -303,12 +314,9 @@ import simpleExpress from 'simple-express-framework';
 simpleExpress({
   port: 8080,
   routes: [
-    {
-      path: '/',
-      handlers: {
-        get: () => ({ body: 'Hello world!' }),
-      },
-    },
+    ['/', {
+      get: () => ({ body: 'Hello world!' }),
+    }],
   ],
 })
 ```
@@ -320,69 +328,55 @@ import users from 'users';
 
 simpleExpress({
   port: 8080,
+  routeParams: { usersRepository },
   routes: [
-    {
-      path: '/',
-      handlers: {
-        get: () => ({ body: 'Hello world!' }),
+    ['/users', {
+      get: async ({ query: { search } }) => {
+        const allUsers = await users.getAll(search);
+
+        return {
+          body: allUsers,
+        };
       },
-    },
-    {
-      path: 'users',
-      handlers: {
-        get: async ({ query }) => {
-          const { search } = query;
-          const allUsers = await users.getAll(search);
+      post: async ({ body }) => {
+        const results = await users.create(body);
 
+        return {
+          status: 201,
+          body: results,
+        };
+    }],
+    ['users/:id', {
+      get: async ({ params: { id } }) => {
+        const user = await users.getById(id);
+
+        if (user) {
           return {
-            body: allUsers,
+            body: user,
           };
-        },
-        post: async ({ body }) => {
-          const results = await users.create(body);
+        }
 
-          return {
-            status: 201,
-            body: results,
-          };
-        },
-      }
-    },
-    {
-      path: 'users/:id',
-      handlers: {
-        get: async ({ params }) => {
-          const { id } = params;
-          const user = await users.getById(id);
-
-          if (user) {
-            return {
-              body: user,
-            };
-          }
-
-          return {
-            status: 404,
-            body: 'User not found',
-          };
-        },
-        put: async ({ body, params }) => {
-          const { id } = params;
-          const result = await users.updateById(id, body);
-
-          if (result) {
-            return {
-              status: 204,
-            };
-          }
-
-          return {
-            status: 404,
-            body: 'User not found',
-          };
-        },
+        return {
+          status: 404,
+          body: 'User not found',
+        };
       },
-    },
+      put: async ({ params: { id }, body }) => {
+        const { id } = params;
+        const result = await users.updateById(id, body);
+
+        if (result) {
+          return {
+            status: 204,
+          };
+        }
+
+        return {
+          status: 404,
+          body: 'User not found',
+        };
+      },
+    }],
   ],
 })
 ```
@@ -422,31 +416,28 @@ simpleExpress({
   port: 8080,
   routes: [
     ...
-    {
-      path: 'users',
-      handlers: {
-        get: [
-          ({ get, next }) => {
-            if (verifyToken(get('authentication'))) {
-              return next();
-            }
+    ['/users', {
+      get: [
+        ({ get, next }) => {
+          if (verifyToken(get('authentication'))) {
+            return next();
+          }
 
-            return {
-              status: 401,
-              body: 'Unauthorized',
-            };
-          },
-          async ({ query }) => {
-            const { search } = query;
-            const allUsers = await users.getAll(search);
+          return {
+            status: 401,
+            body: 'Unauthorized',
+          };
+        },
+        async ({ query }) => {
+          const { search } = query;
+          const allUsers = await users.getAll(search);
 
-            return {
-              body: allUsers,
-            };
-          },
-        ]
-      }
-    },
+          return {
+            body: allUsers,
+          };
+        },
+      ]
+    }],
     ...
   ],
 });
@@ -462,23 +453,20 @@ simpleExpress({
   port: 8080,
   routes: [
     ...
-    {
-      path: 'users/:id',
-      handlers: {
-        get: async ({ params }) => {
-          const { id } = params;
-          const user = await users.getById(id);
+    ['/users/:id', {
+      get: async ({ params }) => {
+        const { id } = params;
+        const user = await users.getById(id);
 
-          if (user) {
-            return {
-              body: user,
-            };
-          }
+        if (user) {
+          return {
+            body: user,
+          };
+        }
 
-          throw new NotFoundError('User not found');
-        },
+        return new NotFoundError('User not found');
       },
-    },
+    }],
     ...
   ],
   errorHandlers: [
@@ -526,6 +514,7 @@ simpleExpress({
   config: {
     jsonBodyParser: false,
     cors: false,
+    cookieParser: false,
   },
   routes: [
     ...
@@ -534,15 +523,15 @@ simpleExpress({
 ```
 
 ### Applying express middlewares
-Cors ({origin: true, credentials: true, exposedHeaders: ['Link', 'Jwt']}) and JSON body parser ({limit: '300kb'}) are configured by default
+Cors, JSON body parser and cookie parser are configured by default
 ```js
 import simpleExpress from 'simple-express-framework';
-import cookieParser from 'cookie-parser';
+import morgan from 'morgan';
 
 simpleExpress({
   port: 8080,
   expressMiddlewares: [
-    cookieParser(),
+    morgan('combined'),
   ],
   routes: [
     ...
@@ -557,23 +546,30 @@ import simpleExpress from 'simple-express-framework';
 simpleExpress({
   port: 8080,
   routes: [
-    {
-      path: '/',
-      handlers: {
-        get: ({ res }) => {
-          res.write('<div>Hello world</div>');
-          res.end();
-
-          // no return
-          // or
-          return null;
-          // or
-          return {
-            format: none,
-          };
-        },
+    ['/foo', {
+      get: ({ res }) => {
+        res.write('<div>Hello foo</div>');
+        res.end();
       },
-    },
+    }],
+    ['/bar', {
+      get: ({ res }) => {
+        res.write('<div>Hello baz</div>');
+        res.end();
+
+        return null;
+      },
+    }],
+    ['/baz', {
+      get: ({ res }) => {
+        res.write('<div>Hello baz</div>');
+        res.end();
+
+        return {
+          format: none,
+        };
+      },
+    }],
   ],
 })
 ```
@@ -586,31 +582,28 @@ import simpleExpress, { ValidationError, checkPropTypes } from 'simple-express';
 const { app } = await simpleExpress({
   port: 8080,
   routes: [
-    {
-      path: '/:bam',
-      handlers: {
-        post: [
-          checkPropTypes({
-            body: PropTypes.shape({
-              foo: PropTypes.number,
-              bar: PropTypes.number,
-            }),
-            query: {
-              baz: PropTypes.oneOf(['right']),
-            },
-            params: {
-              bam: PropTypes.oneOf(['correct']),
-            },
-            headers: {
-              custom: PropTypes.oneOf(['notwrong']).isRequired,
-            },
+    ['/:bam', {
+      post: [
+        checkPropTypes({
+          body: PropTypes.shape({
+            foo: PropTypes.number,
+            bar: PropTypes.number,
           }),
-          () => ({
-            body: 'works'
-          })
-        ],
-      },
-    },
+          query: {
+            baz: PropTypes.oneOf(['right']),
+          },
+          params: {
+            bam: PropTypes.oneOf(['correct']),
+          },
+          headers: {
+            custom: PropTypes.oneOf(['notwrong']).isRequired,
+          },
+        }),
+        () => ({
+          body: 'works'
+        })
+      ],
+    }],
   ],
   errorHandlers: [
     (error, { next }) => {
@@ -637,28 +630,25 @@ const { check, validationResult } = require('express-validator');
 const { app } = await simpleExpress({
   port: 8080,
   routes: [
-    {
-      path: '/user',
-      handlers: {
-        post: [
-          ...wrapMiddleware([
-            check('username').isEmail(),
-            check('password').isLength({ min: 5 })
-          ]),
-          ({ req, next }) => {
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-              return res.status(400).json({ errors: errors.array() });
-            }
+    ['/user', {
+      post: [
+        wrapMiddleware([
+          check('username').isEmail(),
+          check('password').isLength({ min: 5 })
+        ]),
+        ({ req, next }) => {
+          const errors = validationResult(req);
+          if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+          }
 
-            next();
-          },
-          () => ({
-            body: 'works'
-          })
-        ],
-      },
-    },
+          next();
+        },
+        () => ({
+          body: 'works'
+        })
+      ],
+    }],
   ],
 });
 ```
@@ -675,56 +665,10 @@ You can enable only some logs:
 - `DEBUG=simpleExpress`: General logs (like "App started on port", or "ERROR: port already in use")
 - `DEBUG=simpleExpress:request`: Log all requests with response time
 - `DEBUG=simpleExpress:stats`: Simple express statistics, like registered routes, middlewares etc.
-- `DEBUG=simpleExpress:warning`: Unimplemented features and other warning
+- `DEBUG=simpleExpress:warning`: Unimplemented features and other warnings
 
 ### Testing the app
-To be able to test your app with tool like supertest, you need to export `app`.
-
-Note that you don't have to pass the "port" parameter to simpleExpress function. App will not listen on any port but you will be able to test it using supertest.
-
-#### app.js
-```js
-import simpleExpress from '../lib';
-
-const runApp = async () => {
-  const { app } = await simpleExpress({
-    routes: [
-      {
-        path: '/',
-        handlers: {
-          get: () => ({ body: 'works' }),
-        }
-      }
-    ],
-  });
-
-  return app;
-};
-
-export default runApp;
-```
-
-#### index.js
-```js
-import runApp from './app';
-
-runApp();
-```
-
-#### app.test.js
-```js
-import request from 'supertest';
-import runApp from '../App';
-
-it('works', async () => {
-  const app = await runApp();
-
-  return request(app)
-    .get('/')
-    .expect(200)
-    .expect('works');
-});
-```
+See the demo app for tests examples.
 
 ## Development
 - Clone the repository
@@ -739,6 +683,7 @@ it('works', async () => {
 - Added `type` response field
 - Changed default response method to `send`
 - Updated readme
+- Update demo app - now it's complete application with tests
 
 ### 1.0.3
 - Exposed res.locals to route handlers and error handlers as "locals"

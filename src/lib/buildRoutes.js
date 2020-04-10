@@ -1,23 +1,31 @@
 import { Router } from 'express';
 import forEach from 'lodash/forEach';
-import map from 'lodash/map';
-import pick from 'lodash/pick';
-import omit from 'lodash/omit';
 import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
-import isEmpty from 'lodash/isEmpty';
 import isFunction from 'lodash/isFunction';
 import isPlainObject from 'lodash/isPlainObject';
+import set from 'lodash/set';
+import get from 'lodash/get';
 
 import log from './log';
 
-const availableMethods = [
+const defaultRouterOptions = {
+  mergeParams: true,
+};
+
+const methodsRecognized = [
+  'get',
+  'post',
+  'put',
+  'delete',
+  'del',
+  'options',
+  'patch',
+  'head',
+
   'checkout',
   'copy',
-  'delete',
-  'get',
-  'head',
   'lock',
   'merge',
   'mkactivity',
@@ -25,11 +33,7 @@ const availableMethods = [
   'move',
   'm-search',
   'notify',
-  'options',
-  'patch',
-  'post',
   'purge',
-  'put',
   'report',
   'search',
   'subscribe',
@@ -38,19 +42,9 @@ const availableMethods = [
   'unsubscribe',
 ];
 
-const methodsExcluded = [
-  'delete',
-  'get',
-  'head',
-  'options',
-  'patch',
-  'post',
-  'put',
-];
-
 const mapMethod = method => method.toLowerCase();
 
-const joinPath = (...paths) => {
+const normalizePath = (...paths) => {
   return paths.map((path, index) => {
     if (!path) {
       return '';
@@ -65,184 +59,129 @@ const joinPath = (...paths) => {
       return trimStart(path, '/');
     }
     return trim(path, '/');
-  }).filter(el => el).join('/');
+  }).filter(el => el);
 };
 
-const getHandlersAndRoutes = source => {
-  if (Array.isArray(source)) {
-    return {
-      routes: source,
-    };
-  }
-  return {
-    handlers: pick(source, methodsExcluded),
-    routes: omit(source, methodsExcluded),
-  };
+const joinPath = (...paths) => {
+  return normalizePath(...paths).join('/');
 };
 
-const getRoute = (route, key) => {
-/* Possible route shapes
-  // simple objects with path, handlers and routes
-  const route1 = {
-    path: '/',
-    handlers: handlersObject,
-  };
-  const route2 = {
-    path: '/foo',
-    handlers: handlersObject,
-    routes: children,
-  };
 
-  // objects
-  const route3 = {
-    '/bar': handlersObject,
-  };
+const getRoutesAgregator = ({ stats }) => {
+  const routes = {};
 
-  // arrays
-  const route4 = [
-    ...children,
-  ];
-  const route5 = [
-    '/',
-    handlersObject,
-  ];
-  const route6 = [
-    '/foo',
-    children,
-  ];
-
-  // fields of objects (with +key)
-    // already handlers
-  const route7 = handlersObject; // +key
-
-    // objects with handlers and routes
-  const route8 = { // +key
-    handlers: handlersObject,
-    routes: children,
-  };
-    // objects
-  const route9 = { // +key; seems to be equal to 7?
-    '/bar': handlersObject,
-  };
-    // arrays
-  const route10 = [ // +key
-    '/',
-    handlersObject,
-  ];
-  const route11 = [ // +key
-    '/foo',
-    children,
-  ];
-  const route12 = [ // +key
-    '/foo',
-    [
-      '/bar',
-      children || handlersObject,
-    ]
-  ]
-
-  const route13 = [ // + key
-    ...children,
-  ];
-*/
-  if (key) {
-    // 7 - 13
-    if (Array.isArray(route)) {
-      // 10 - 13
-      if (typeof route[0] === 'string') {
-        // 10 - 12
-        return { path: key, children: [route] };
+  const routesAgregator = {
+    registerRoute: ({ path, method, handler }) => {
+      if (!method) {
+        // middleware, not logged for now
+        return;
       }
-      // 13
-      return { path: key, children: route };
-    }
-    // 7 - 9
-    if (route.handlers || route.routes) {
-      // 8
-      return { path: key, handlersObject: route.handlers, children: route.routes };
-    }
-    // 7, 9
-    const { routes, handlers } = getHandlersAndRoutes(route);
-    return { path: key, handlers, children: routes };
-  }
+      const pathNormalized = normalizePath(path);
+      const methodNormalized = mapMethod(method);
 
-  // 1 - 6
-  if (Array.isArray(route)) {
-    // 4 - 6
-    if (typeof route[0] === 'string') {
-      // 5 - 6
-      const { routes, handlers } = getHandlersAndRoutes(route[1]);
-      if (Array.isArray(routes) && typeof routes[0] === 'string') {
-        return { path: route[0], handlersObject: handlers, children: [routes] };
+      set(routes, [...pathNormalized, 'path'], path);
+      set(routes, [...pathNormalized, 'method'], methodNormalized);
+      set(routes, [...pathNormalized, 'numberOfHandlers'], get(routes, [...pathNormalized, 'numberOfHandlers'], 0) + 1);
+      set(
+        routes,
+        [...pathNormalized, 'names'],
+        [
+          ...get(routes, [...pathNormalized, 'names'], []),
+          !handler.name || handler.name === method ? 'anonymous' : handler.name
+        ]
+      );
+      // console.log('handler', handler.toString());
+      set(
+        routes,
+        [...pathNormalized, 'handlers'],
+        [
+          ...get(routes, [...pathNormalized, 'handlers'], []),
+          handler.toString(),
+        ]
+      );
+    },
+    logRoute: (routes) => {
+      if (routes.path) {
+        return stats.registerEvent('registeringRoute', {
+          path: joinPath(...routes.path),
+          method: routes.method,
+          numberOfHandlers: routes.numberOfHandlers,
+          names: routes.names,
+        });
       }
-      return { path: route[0], handlersObject: handlers, children: routes };
-    }
-    // 4
-    return { children: route };
-  }
-  // 1 - 3
-  if (route.path) {
-    // 1 - 2
-    return { path: route.path, handlersObject: route.handlers, children: route.routes };
-  }
-  // 3
-  return { children: route };
+      forEach(routes, routesAgregator.logRoute);
+    },
+    logRoutes: () => {
+      routesAgregator.logRoute(routes);
+    },
+    getRoutes: () => routes,
+  };
+
+  return routesAgregator;
 };
 
-const getAttachHandlers = ({ stats, createHandlerWithParams }) => (router, handlers, path, joinedPath, logAsRoute = true) => {
-  if (path.indexOf('/') !== 0 && path !== '*') {
-    log.warning(`Path "${path}" does not start with "/"`);
+const attach = (router) => (method, ...handlers) => {
+  const [first, ...rest] = handlers;
+  if (typeof first === 'string') {
+    return router[method](first, ...rest);
   }
-  forEach(handlers, (handler, method) => {
-    if (!Array.isArray(handler)) {
-      handler = [handler];
-    }
-    if (logAsRoute) {
-      stats.registerEvent('registeringRoute', {
-        path: joinedPath,
-        method: mapMethod(method),
-        numberOfHandlers: handler.length,
-        names: handler.map(el => !el.name || el.name === method ? 'anonymous' : el.name)
-      });
-    }
-    if (path) {
-      router[mapMethod(method)](path, ...handler.map(createHandlerWithParams));
-    } else {
-      router[mapMethod(method)](...handler.map(createHandlerWithParams));
-    }
-  });
-
-  return router;
+  return router[method]('/', ...handlers);
 };
+
+
 
 const getBuildRoutes = ({ stats, createHandlerWithParams }) => {
-  const attachHandlers = getAttachHandlers({ stats, createHandlerWithParams });
+  const routesAgregator = getRoutesAgregator({ stats });
 
-  const buildRoutes = (routes, subPath) => {
-    const isRoutesArray = Array.isArray(routes);
-    const router = Router();
-    forEach(routes, (route, key) => {
-      const { path, handlersObject, children, middlewares } = getRoute(route, isRoutesArray ? null : key);
-      const joinedPath = joinPath(subPath, path);
-      const subRouter = Router();
-      const middlewareRouter = Router();
+  const createRouter = (el, { subPath = [], method } = {}) => {
+    if (isFunction(el)) {
+      routesAgregator.registerRoute({ path: subPath, method, handler: el });
+      return createHandlerWithParams(el);
+    }
 
-      if (handlersObject && !isEmpty(handlersObject)) {
-        attachHandlers(subRouter, handlersObject, null, joinedPath);
-      }
-      if (children && !isEmpty(children)) {
-        subRouter.use(subRouter, buildRoutes(children, joinedPath));
-      }
+    const subRouter = Router(defaultRouterOptions);
 
-      if (middlewares && !isEmpty(middlewares)) {
-        attachHandlers(middlewareRouter, middlewares, null, joinedPath);
+    if (isPlainObject(el)) {
+      const { path, handlers, routes, ...rest } = el;
+      if (path) {
+        if (!handlers && !routes) {
+          attach(subRouter)('use', path, createRouter(rest, { subPath: [...subPath, path], method }));
+        }
+        if (handlers) {
+          attach(subRouter)('use', path, createRouter(handlers, { subPath: [...subPath, path], method }));
+        }
+        if (routes) {
+          attach(subRouter)('use', path, createRouter(routes, { subPath: [...subPath, path], method }));
+        }
+      } else {
+        forEach(el, (subEl, subKey) => {
+          if (methodsRecognized.includes(subKey)) {
+            attach(subRouter)(subKey, createRouter(subEl, { subPath, method: subKey }));
+          } else {
+            attach(subRouter)('use', subKey, createRouter(subEl, { subPath: [...subPath, subKey], method }));
+          }
+        });
       }
-      router.use(path, middlewareRouter, subRouter);
-    });
-    return router;
+    }
+    if (Array.isArray(el)) {
+      const [firstElement, ...rest] = el;
+      if (typeof firstElement === 'string') {
+        attach(subRouter)('use', firstElement, createRouter(rest, { subPath: [...subPath, firstElement], method }));
+      } else {
+        el.forEach(subEl => {
+          attach(subRouter)('use', createRouter(subEl, { subPath, method }));
+        });
+      }
+    }
+
+    return subRouter;
   };
 
-  return buildRoutes;
+  return (routes) => {
+    const router = createRouter(routes);
+    routesAgregator.logRoutes();
+    return router;
+  };
 };
 
 export default getBuildRoutes;
