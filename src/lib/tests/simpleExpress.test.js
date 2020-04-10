@@ -1,6 +1,6 @@
 import request from 'supertest';
 import freePort from 'find-free-port';
-import simpleExpress, { ValidationError, checkPropTypes, wrapMiddleware } from '../index';
+import simpleExpress, { ValidationError, checkPropTypes, wrapMiddleware, handleError } from '../index';
 import PropTypes from 'prop-types';
 
 import { routeStyles } from './testData/routes';
@@ -480,4 +480,39 @@ describe('simpleExpress', () => {
       expect(errorHandler).toHaveBeenCalledTimes(1);
     });
   });
+  describe('handleError helper', () => {
+    it('chooses correct handler to handle the error', async () => {
+      const Error1 = class extends Error {};
+      const Error2 = class extends Error {};
+      const error2 = new Error2('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                () => error2,
+              ]
+            },
+          },
+        ],
+        errorHandlers: [
+          handleError(Error1, errorHandler1),
+          handleError(Error2, errorHandler2),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2).toHaveBeenCalledTimes(1);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+  })
 });

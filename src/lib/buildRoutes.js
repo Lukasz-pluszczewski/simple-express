@@ -79,12 +79,12 @@ const getRoutesAgregator = ({ stats }) => {
       const pathNormalized = normalizePath(path);
       const methodNormalized = mapMethod(method);
 
-      set(routes, [...pathNormalized, 'path'], path);
-      set(routes, [...pathNormalized, 'method'], methodNormalized);
-      set(routes, [...pathNormalized, 'numberOfHandlers'], get(routes, [...pathNormalized, 'numberOfHandlers'], 0) + 1);
+      set(routes, [...pathNormalized, method, 'path'], path);
+      set(routes, [...pathNormalized, method, 'method'], methodNormalized);
+      set(routes, [...pathNormalized, method, 'numberOfHandlers'], get(routes, [...pathNormalized, 'numberOfHandlers'], 0) + 1);
       set(
         routes,
-        [...pathNormalized, 'names'],
+        [...pathNormalized, method, 'names'],
         [
           ...get(routes, [...pathNormalized, 'names'], []),
           !handler.name || handler.name === method ? 'anonymous' : handler.name
@@ -93,7 +93,7 @@ const getRoutesAgregator = ({ stats }) => {
       // console.log('handler', handler.toString());
       set(
         routes,
-        [...pathNormalized, 'handlers'],
+        [...pathNormalized, method, 'handlers'],
         [
           ...get(routes, [...pathNormalized, 'handlers'], []),
           handler.toString(),
