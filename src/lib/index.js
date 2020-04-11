@@ -79,9 +79,13 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
 const simpleExpress = async({
   port,
   routes = [],
-  simpleExpressMiddlewares = [],
+  middleware = [],
+  middlewares = [], // TODO remove in 3.0.0
+  simpleExpressMiddlewares, // TODO remove in 3.0.0
+  globalMiddlewares, // TODO remove in 3.0.0
   errorHandlers = [],
-  expressMiddlewares = [],
+  expressMiddlewares, // TODO remove in 3.0.0
+  expressMiddleware = [],
   config: userConfig,
   routeParams = {},
   app: userApp = defaultAppValue,
@@ -92,6 +96,24 @@ const simpleExpress = async({
   } else {
     log(`Initializing simpleExpress app (no port)...`);
   }
+  // validate config
+  if (globalMiddlewares) {
+    log.warning('"globalMiddlewares" option is deprecated. Use "middleware" option.');
+    middleware = [...middleware, ...globalMiddlewares];
+  }
+  if (simpleExpressMiddlewares) {
+    log.warning('"simpleExpressMiddlewares" option is deprecated. Use "middleware" option.');
+    middleware = [...middleware, ...simpleExpressMiddlewares];
+  }
+  if (middlewares) {
+    log.warning('"middlewares" option is deprecated. Use "middleware" (without "s") option.');
+    middleware = [...middleware, ...middlewares];
+  }
+  if (expressMiddlewares) {
+    log.warning('"expressMiddlewares" option is deprecated. Use "expressMiddleware" (without "s") option.');
+    expressMiddleware = [...expressMiddleware, ...expressMiddlewares];
+  }
+
   // create stats
   const stats = getStats(port);
 
@@ -125,12 +147,14 @@ const simpleExpress = async({
   const createErrorHandlerWithParams = createErrorHandler(routeParams, simpleExpressHelper);
 
   // applying custom express middlewares
-  stats.set('expressMiddlewares', expressMiddlewares.length);
-  expressMiddlewares.forEach(middleware => app.use(middleware));
+  const expressMiddlewareFlat = _.flattenDeep(expressMiddleware);
+  stats.set('expressMiddleware', expressMiddlewareFlat.length);
+  expressMiddlewareFlat.forEach(middleware => app.use(middleware));
 
   // applying middlewares
-  stats.set('simpleExpressMiddlewares', simpleExpressMiddlewares.length);
-  simpleExpressMiddlewares.forEach(middleware => {
+  const middlewareFlat = _.flattenDeep(middleware);
+  stats.set('middleware', middlewareFlat.length);
+  middlewareFlat.forEach(middleware => {
     app.use(createHandlerWithParams(middleware));
   });
 
@@ -167,16 +191,9 @@ const simpleExpress = async({
   return { app, server, stats };
 };
 
-export const wrapMiddleware = middleware => {
-  if (Array.isArray(middleware)) {
-    return middleware.map(el => ({ req, res, next }) => {
-      el(req, res, next);
-    })
-  }
-  return ({ req, res, next }) => {
-    middleware(req, res, next);
-  }
-};
+export const wrapMiddleware = (...middleware) => _.flattenDeep(middleware).map(el => ({ req, res, next }) => {
+  el(req, res, next);
+});
 
 export { handleError };
 

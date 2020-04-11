@@ -6,11 +6,7 @@ export const responseMethods = {
 };
 
 const getResponseMethod = (method, body) => {
-  if (!method) {
-    return 'send';
-  }
-
-  if (!responseMethods.hasOwnProperty(method)) {
+  if (! method || !responseMethods.hasOwnProperty(method)) {
     return responseMethods.default;
   }
   return responseMethods[method];

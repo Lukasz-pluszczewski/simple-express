@@ -77,14 +77,11 @@ describe('simpleExpress', () => {
     it('returns json body', async () => {
       const { app } = await simpleExpress({
         routes: [
-          {
-            path: '/',
-            handlers: {
-              get: () => ({
-                body: { foo: 'bar', baz: 1 },
-              }),
-            },
-          },
+          ['/', {
+            get: () => ({
+              body: { foo: 'bar', baz: 1 },
+            }),
+          }],
         ],
       });
 
@@ -93,17 +90,136 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect({ foo: 'bar', baz: 1 });
     });
+    it('returns response with Content-Type set', async () => {
+      const { app } = await simpleExpress({
+        routes: [
+          ['/css', {
+            get: () => ({
+              body: '.body { background-color: red }',
+              type: 'css'
+            }),
+          }],
+          ['/html', {
+            get: () => ({
+              body: '<html></html>',
+              type: 'html'
+            }),
+          }],
+          ['/js', {
+            get: () => ({
+              body: 'alert(\'hello\')',
+              type: 'text/javascript'
+            }),
+          }],
+          ['/json', {
+            get: () => ({
+              body: { foo: 'bar' },
+            }),
+          }],
+
+        ],
+      });
+
+      await request(app)
+        .get('/css')
+        .expect(200)
+        .expect('Content-Type', 'text/css; charset=utf-8')
+        .expect('.body { background-color: red }');
+
+      await request(app)
+        .get('/html')
+        .expect(200)
+        .expect('Content-Type', 'text/html; charset=utf-8')
+        .expect('<html></html>');
+
+      await request(app)
+        .get('/js')
+        .expect(200)
+        .expect('Content-Type', 'text/javascript; charset=utf-8')
+        .expect('alert(\'hello\')');
+
+      await request(app)
+        .get('/json')
+        .expect(200)
+        .expect('Content-Type', 'application/json; charset=utf-8')
+        .expect({ foo: 'bar' });
+    });
+    it('returns response with headers set', async () => {
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: () => ({
+              body: { bar: 'baz' },
+              headers: {
+                custom: 'headerValue',
+                foo: 'works'
+              }
+            }),
+          }],
+
+        ],
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('custom', 'headerValue')
+        .expect('foo', 'works')
+        .expect({ bar: 'baz' });
+    });
+    it('returns a redirect', async () => {
+      const { app } = await simpleExpress({
+        routes: [
+          ['/found', {
+            get: () => ({
+              redirect: '/foo',
+            }),
+          }],
+          ['/moved', {
+            get: () => ({
+              status: 301,
+              redirect: '/foo',
+            }),
+          }],
+          ['/foo', {
+            get: () => ({
+              status: 201,
+              body: { foo: 'bar' }
+            })
+          }]
+        ],
+      });
+
+      await request(app)
+        .get('/found')
+        .redirects(0)
+        .expect(302);
+
+      await request(app)
+        .get('/found')
+        .redirects(1)
+        .expect(201)
+        .expect({ foo: 'bar' });
+
+      await request(app)
+        .get('/moved')
+        .redirects(0)
+        .expect(301);
+
+      await request(app)
+        .get('/moved')
+        .redirects(1)
+        .expect(201)
+        .expect({ foo: 'bar' });
+    });
     it('gets body, query and params', async () => {
       const { app } = await simpleExpress({
         routes: [
-          {
-            path: '/:foo/:bar',
-            handlers: {
-              post: ({ body, query, params }) => ({
-                body: { body, query, params },
-              }),
-            },
-          },
+          ['/:foo/:bar', {
+            post: ({ body, query, params }) => ({
+              body: { body, query, params },
+            }),
+          }],
         ],
       });
 
@@ -116,20 +232,17 @@ describe('simpleExpress', () => {
     it('gets res.locals', async () => {
       const { app } = await simpleExpress({
         routes: [
-          {
-            path: '/',
-            handlers: {
-              get: [
-                ({ next, locals }) => {
-                  locals.foo = 'bar';
-                  next();
-                },
-                ({ locals }) => ({
-                  body: { foo: locals.foo },
-                })
-              ],
-            },
-          },
+          ['/', {
+            get: [
+              ({ next, locals }) => {
+                locals.foo = 'bar';
+                next();
+              },
+              ({ locals }) => ({
+                body: { foo: locals.foo },
+              })
+            ],
+          }],
         ],
       });
 
@@ -141,20 +254,17 @@ describe('simpleExpress', () => {
     it('gets next to work as middleware', async () => {
       const { app } = await simpleExpress({
         routes: [
-          {
-            path: '/',
-            handlers: {
-              get: [
-                ({ next, res }) => {
-                  res.locals = 'works';
-                  next();
-                },
-                ({ res }) => ({
-                  body: res.locals,
-                })
-              ]
-            },
-          },
+          ['/', {
+            get: [
+              ({ next, res }) => {
+                res.locals = 'works';
+                next();
+              },
+              ({ res }) => ({
+                body: res.locals,
+              })
+            ]
+          }],
         ],
       });
 
@@ -166,17 +276,14 @@ describe('simpleExpress', () => {
     it('does not return response when not returning object', async () => {
       const { app } = await simpleExpress({
         routes: [
-          {
-            path: '/',
-            handlers: {
-              get: [
-                ({ res }) => {
-                  res.send('works');
-                  return 'i\'m not going to be sent';
-                },
-              ]
-            },
-          },
+          ['/', {
+            get: [
+              ({ res }) => {
+                res.send('works');
+                return 'i\'m not going to be sent';
+              },
+            ]
+          }],
         ],
       });
 
@@ -184,6 +291,26 @@ describe('simpleExpress', () => {
         .get('/')
         .expect(200)
         .expect('works');
+    });
+    it('does return response as json when set json method', async () => {
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => ({
+                method: 'json',
+                body: 'works',
+              }),
+            ],
+          }],
+        ],
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('Content-type', 'application/json; charset=utf-8')
+        .expect('"works"');
     });
   });
 
@@ -265,6 +392,93 @@ describe('simpleExpress', () => {
         .expect(200);
     });
   });
+  describe('middleware', () => {
+    it('returns json body', async () => {
+      const { app } = await simpleExpress({
+        middleware: [
+          () => ({
+            body: { foo: 'bar', bam: 2 },
+          }),
+        ],
+        routes: [
+          ['/', {
+            get: () => ({
+              body: { foo: 'baz', baz: 1 },
+            }),
+          }],
+        ],
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect({ foo: 'bar', bam: 2 });
+    });
+    it('gets body, query, locals and next', async () => {
+      const { app } = await simpleExpress({
+        middleware: [
+          ({ body, query, locals, next }) => {
+            locals.result = { body, query };
+            next()
+          }
+        ],
+        routes: [
+          ['/foo/bar', {
+            post: ({ locals }) => ({
+              body: locals.result,
+            }),
+          }],
+        ],
+      });
+
+      await request(app)
+        .post('/foo/bar?baq=test')
+        .send({ baq: 1 })
+        .expect(200)
+        .expect({ body: { baq: 1 }, query: { baq: 'test' } });
+    });
+    it('can be nested', async () => {
+      const middleware1 = ({ locals, next }) => {
+        locals.result = 'wo';
+        next();
+      };
+      const middleware2 = ({ locals, next }) => {
+        locals.result += 'rk';
+        next();
+      };
+      const middleware3 = ({ locals, next }) => {
+        locals.result += 's';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        middleware: [
+          middleware1,
+          [
+            middleware2,
+            middleware3,
+          ],
+        ],
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                ({ res }) => ({
+                  body: res.locals.result,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+  });
   describe('middlewareWrapper', () => {
     it('wraps middleware', async () => {
       const expressMiddleware = (req, res, next) => {
@@ -313,6 +527,88 @@ describe('simpleExpress', () => {
                   expressMiddleware1,
                   expressMiddleware2,
                 ]),
+                ({ res }) => ({
+                  body: res.locals,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+    it('wraps nested middlewares', async () => {
+      const expressMiddleware1 = (req, res, next) => {
+        res.locals = 'wo';
+        next();
+      };
+      const expressMiddleware2 = (req, res, next) => {
+        res.locals += 'rk';
+        next();
+      };
+      const expressMiddleware3 = (req, res, next) => {
+        res.locals += 's';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                wrapMiddleware([
+                  expressMiddleware1,
+                  [
+                    expressMiddleware2,
+                    expressMiddleware3,
+                  ],
+                ]),
+                ({ res }) => ({
+                  body: res.locals,
+                })
+              ],
+            },
+          },
+        ],
+      });
+
+      return request(app)
+        .get('/')
+        .expect('works')
+        .expect(200);
+    });
+    it('wraps middlewares provided as separate arguments', async () => {
+      const expressMiddleware1 = (req, res, next) => {
+        res.locals = 'wo';
+        next();
+      };
+      const expressMiddleware2 = (req, res, next) => {
+        res.locals += 'rk';
+        next();
+      };
+      const expressMiddleware3 = (req, res, next) => {
+        res.locals += 's';
+        next();
+      };
+
+      const { app } = await simpleExpress({
+        routes: [
+          {
+            path: '/',
+            handlers: {
+              get: [
+                wrapMiddleware(
+                  expressMiddleware1,
+                  [
+                    expressMiddleware2,
+                    expressMiddleware3,
+                  ]
+                ),
                 ({ res }) => ({
                   body: res.locals,
                 })
@@ -514,5 +810,5 @@ describe('simpleExpress', () => {
       expect(errorHandler2).toHaveBeenCalledTimes(1);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
-  })
+  });
 });

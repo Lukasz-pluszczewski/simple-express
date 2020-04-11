@@ -22,9 +22,9 @@ simpleExpress({
 });
 ```
 
-And that's all! Express server, listening on chosen port, with reasonable default settings is up and running in seconds!
+And that's all! Express server, listening on chosen port, with [reasonable default settings](#config) is up and running in seconds!
 
-But that's not all! Dive in in the examples section to see the power of simple and readable route handlers, clear error handling and more - everything just works!
+But that's not all! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers) and more - everything just works!
 
 ### SimpleExpress function
 You run the app by executing simpleExpress function. All options are optional.
@@ -35,15 +35,15 @@ import simpleExpress from 'simple-express-framework';
 simpleExpress({
   port: 8080,
   routes,
-  expressMiddlewares,
-  globalMiddlewares,
+  expressMiddleware,
+  middleware,
   errorHandlers,
   config,
   routeParams,
   app,
   server,
 })
-  .then(({ app }) => console.log('App started'))
+  .then(({ app, server }) => console.log('App started :)'))
   .catch(error => console.error('App starting failed :(', error));
 ```
 
@@ -51,8 +51,8 @@ simpleExpress({
 Simple express accepts the following options:
 - **port**: *number* Port for the app to listen on. Not required, you can run the app without a port (useful for testing)
 - **routes**: *object|array* See [Routes](#routes)
-- **expressMiddlewares**: *array* Array of express middlewares (functions accepting req, res, and next as arguments)
-- **globalMiddlewares**: *array* Array of simpleExpress middlewares (see [Handlers](#handlers))
+- **expressMiddleware**: *array* Array of express middlewares (functions accepting req, res, and next as arguments)
+- **middleware**: *array* Array of simpleExpress middlewares (see [Handlers](#handlers))
 - **errorHandlers**: *array* Array of simpleExpress error middlewares (see [Error Handlers](#error-handlers))
 - **config**: *object* See [Config](#config)
 - **routeParams**: *object* Object of additional parameters passed to handlers
@@ -168,9 +168,9 @@ All handlers can work as middlewares if they trigger next() instead of returning
 ### Error Handlers
 All errors are being caught by the simpleExpress and passed to error handlers. Error handlers are identical to handlers, except they receive error as first argument, and object of handler parameters as second. To pass an error to error handlers you can trigger `next()` with an error as an argument, throw an error, or return an error in a handler.
 
-Please note, that handler parameters object is exactly the same as in case of handlers, except 'params' field which is for whatever reason stripped by express.
+*Please note, that handler parameters object is exactly the same as in case of handlers, except 'params' field which is for whatever reason stripped by express.*
 
-```
+```js
 routes: [
   ['/foo', {
     get: () => {
@@ -193,7 +193,8 @@ errorHandlers: [
         body: 'Unauthorized',
       };
     }
-    next(error);
+
+    return error;
   },
   (error) = {
     return {
@@ -245,7 +246,7 @@ simpleExpress({
 ```
 
 #### Object of objects
-**Warning:** Object keys' order is preserved only for string and symbols keys, not for integers (integers, including in strings like "1", will always be before all other keys)!
+**Warning:** *Object keys' order is preserved only for string and symbols keys, not for integers (integers, including in strings like "1", will always be before all other keys)!*
 ```js
 
 simpleExpress({
@@ -264,7 +265,7 @@ simpleExpress({
 #### Reserved object keys
 Because object keys can be used as route paths but also as method names (like get, post etc.) or as names like path, handlers and routes here is the list of reserved key names that can't be used as route paths:
 
-Please note that all of those can be used with slash at the beginning like `/path`. Only exactly listed strings are reserved.
+*Please note that all of those can be used with slash at the beginning like `/path` or `/post`. Only exactly listed strings are reserved.*
 - path
 - handlers
 - routes
@@ -304,7 +305,15 @@ By default, JSON body parser, cors and cookie parser middlewares are configured.
 
 ### Global Middlewares
 Global middlewares can be added in `globalMiddleware` field. It is array of handlers (each handlers looks exactly like route handlers, with the same parameters).
-If you need to use express middlewares directly, you can pass them to expressMiddlewares array.
+```js
+simpleExpress({
+  port: 8080,
+  middleware
+  ...
+})
+```
+
+If you need to use express middlewares directly, you can pass them to expressMiddleware array.
 
 ## More usage examples
 ### Hello world
@@ -388,7 +397,7 @@ import verifyToken from 'verifyToken';
 
 simpleExpress({
   port: 8080,
-  globalMiddlewares: [
+  middleware: [
     ({ get, next }) => {
       if (verifyToken(get('authentication'))) {
         return next();
@@ -530,7 +539,7 @@ import morgan from 'morgan';
 
 simpleExpress({
   port: 8080,
-  expressMiddlewares: [
+  expressMiddleware: [
     morgan('combined'),
   ],
   routes: [
@@ -676,6 +685,17 @@ See the demo app for tests examples.
 - `npm run test`
 
 ## Changelog
+
+### 2.0.2
+- DEPRECATION: `simpleExpressMiddlewares` and `middlewares` options are deprecated, use `middleware` instead
+- DEPRECATION: `expressMiddlewares` option is deprecated, use `expressMiddleware` instead
+- All middlewares can now be nested
+- Added more tests
+- Improved readme
+
+### 2.0.1
+- improved stats log
+- updated tests
 
 ### 2.0.0
 - Added support for nested routes, in many shapes
