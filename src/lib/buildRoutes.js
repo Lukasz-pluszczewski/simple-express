@@ -1,14 +1,5 @@
 import { Router } from 'express';
-import forEach from 'lodash/forEach';
-import trim from 'lodash/trim';
-import trimEnd from 'lodash/trimEnd';
-import trimStart from 'lodash/trimStart';
-import isFunction from 'lodash/isFunction';
-import isPlainObject from 'lodash/isPlainObject';
-import set from 'lodash/set';
-import get from 'lodash/get';
-
-import log from './log';
+import _ from 'lodash';
 
 const defaultRouterOptions = {
   mergeParams: true,
@@ -53,12 +44,12 @@ const normalizePath = (...paths) => {
       return path;
     }
     if (index === 0) {
-      return trimEnd(path, '/');
+      return _.trimEnd(path, '/');
     }
     if (index === paths.length - 1) {
-      return trimStart(path, '/');
+      return _.trimStart(path, '/');
     }
-    return trim(path, '/');
+    return _.trim(path, '/');
   }).filter(el => el);
 };
 
@@ -79,23 +70,22 @@ const getRoutesAgregator = ({ stats }) => {
       const pathNormalized = normalizePath(path);
       const methodNormalized = mapMethod(method);
 
-      set(routes, [...pathNormalized, method, 'path'], path);
-      set(routes, [...pathNormalized, method, 'method'], methodNormalized);
-      set(routes, [...pathNormalized, method, 'numberOfHandlers'], get(routes, [...pathNormalized, 'numberOfHandlers'], 0) + 1);
-      set(
+      _.set(routes, [...pathNormalized, method, 'path'], path);
+      _.set(routes, [...pathNormalized, method, 'method'], methodNormalized);
+      _.set(routes, [...pathNormalized, method, 'numberOfHandlers'], _.get(routes, [...pathNormalized, 'numberOfHandlers'], 0) + 1);
+      _.set(
         routes,
         [...pathNormalized, method, 'names'],
         [
-          ...get(routes, [...pathNormalized, 'names'], []),
+          ..._.get(routes, [...pathNormalized, 'names'], []),
           !handler.name || handler.name === method ? 'anonymous' : handler.name
         ]
       );
-      // console.log('handler', handler.toString());
-      set(
+      _.set(
         routes,
         [...pathNormalized, method, 'handlers'],
         [
-          ...get(routes, [...pathNormalized, 'handlers'], []),
+          ..._.get(routes, [...pathNormalized, 'handlers'], []),
           handler.toString(),
         ]
       );
@@ -109,7 +99,7 @@ const getRoutesAgregator = ({ stats }) => {
           names: routes.names,
         });
       }
-      forEach(routes, routesAgregator.logRoute);
+      _.forEach(routes, routesAgregator.logRoute);
     },
     logRoutes: () => {
       routesAgregator.logRoute(routes);
@@ -134,14 +124,14 @@ const getBuildRoutes = ({ stats, createHandlerWithParams }) => {
   const routesAgregator = getRoutesAgregator({ stats });
 
   const createRouter = (el, { subPath = [], method } = {}) => {
-    if (isFunction(el)) {
+    if (_.isFunction(el)) {
       routesAgregator.registerRoute({ path: subPath, method, handler: el });
       return createHandlerWithParams(el);
     }
 
     const subRouter = Router(defaultRouterOptions);
 
-    if (isPlainObject(el)) {
+    if (_.isPlainObject(el)) {
       const { path, handlers, routes, ...rest } = el;
       if (path) {
         if (!handlers && !routes) {
@@ -154,7 +144,7 @@ const getBuildRoutes = ({ stats, createHandlerWithParams }) => {
           attach(subRouter)('use', path, createRouter(routes, { subPath: [...subPath, path], method }));
         }
       } else {
-        forEach(el, (subEl, subKey) => {
+        _.forEach(el, (subEl, subKey) => {
           if (methodsRecognized.includes(subKey)) {
             attach(subRouter)(subKey, createRouter(subEl, { subPath, method: subKey }));
           } else {

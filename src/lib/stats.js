@@ -58,11 +58,11 @@ const getStats = port => {
         log.stats(`-->Stats for simpleExpress app (no port):<--`);
       }
       logDefaultMiddlewares(statsInstance);
-      if (statsInstance.getCounter('expressMiddlewares')) {
-        log.stats(`  Registered ${statsInstance.getCounter('expressMiddlewares')} expressMiddleware${statsInstance.getCounter('expressMiddlewares') > 1 ? 's' : ''}`);
+      if (statsInstance.getCounter('expressMiddleware')) {
+        log.stats(`  Registered ${statsInstance.getCounter('expressMiddleware')} expressMiddleware${statsInstance.getCounter('expressMiddleware') > 1 ? 's' : ''}`);
       }
-      if (statsInstance.getCounter('simpleExpressMiddlewares')) {
-        log.stats(`  Registered ${statsInstance.getCounter('simpleExpressMiddlewares')} simpleExpressMiddlewares${statsInstance.getCounter('simpleExpressMiddlewares') > 1 ? 's' : ''}`);
+      if (statsInstance.getCounter('middleware')) {
+        log.stats(`  Registered ${statsInstance.getCounter('middleware')} middleware${statsInstance.getCounter('middleware') > 1 ? 's' : ''}`);
       }
       if (statsInstance.getCounter('errorHandlers')) {
         log.stats(`  Registered ${statsInstance.getCounter('errorHandlers')} errorHandlers${statsInstance.getCounter('errorHandlers') > 1 ? 's' : ''}`);
