@@ -29,37 +29,55 @@ export const routeStyles = {
         ],
       },
     },
+    {
+      path: '/method',
+      handlers: {
+        get: () => ({ body: 'works get' }),
+        post: () => ({ body: 'works post' }),
+        delete: () => ({ body: 'works delete' }),
+        put: () => ({ body: 'works put' }),
+      },
+    },
+    {
+      path: '/allmethods',
+      handlers: {
+        use: () => ({ body: 'works use' }),
+      },
+    },
   ],
   arrayOfArrays: [
-    [
-      '/',
-      {
-        get: () => ({
-          body: 'works',
-          status: 201,
-        }),
-      },
-    ],
-    [
-      '/foo/bar',
-      {
-        get: [
-          ({ getHeader, next }) => {
-            if (getHeader('authentication') !== 'token') {
-              return {
-                status: 401,
-                body: 'unauthenticated',
-              };
-            }
+    ['/', {
+      get: () => ({
+        body: 'works',
+        status: 201,
+      }),
+    }],
+    ['/foo/bar', {
+      get: [
+        ({ getHeader, next }) => {
+          if (getHeader('authentication') !== 'token') {
+            return {
+              status: 401,
+              body: 'unauthenticated',
+            };
+          }
 
-            next();
-          },
-          () => ({
-            body: 'authenticated',
-          }),
-        ],
-      },
-    ],
+          next();
+        },
+        () => ({
+          body: 'authenticated',
+        }),
+      ],
+    }],
+    ['/method', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    ['/allmethods', {
+      use: () => ({ body: 'works use' }),
+    }],
   ],
   objectOfObjects: {
     '/': {
@@ -84,6 +102,15 @@ export const routeStyles = {
           body: 'authenticated',
         }),
       ],
+    },
+    '/method': {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    },
+    '/allmethods': {
+      use: () => ({ body: 'works use' }),
     },
   },
   arrayOfObjectsNested: [
@@ -121,6 +148,21 @@ export const routeStyles = {
         }
       ],
     },
+    {
+      path: '/method',
+      handlers: {
+        get: () => ({ body: 'works get' }),
+        post: () => ({ body: 'works post' }),
+        delete: () => ({ body: 'works delete' }),
+        put: () => ({ body: 'works put' }),
+      },
+    },
+    {
+      path: '/allmethods',
+      handlers: {
+        use: () => ({ body: 'works use' }),
+      },
+    },
   ],
   arrayOfObjectsNestedObjectOfObjects: [
     {
@@ -152,6 +194,21 @@ export const routeStyles = {
             }),
           ],
         },
+      },
+    },
+    {
+      path: '/method',
+      handlers: {
+        get: () => ({ body: 'works get' }),
+        post: () => ({ body: 'works post' }),
+        delete: () => ({ body: 'works delete' }),
+        put: () => ({ body: 'works put' }),
+      },
+    },
+    {
+      path: '/allmethods',
+      handlers: {
+        use: () => ({ body: 'works use' }),
       },
     },
   ],
@@ -188,6 +245,15 @@ export const routeStyles = {
         },
       ],
     ],
+    ['/method', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    ['/allmethods', {
+      use: () => ({ body: 'works use' }),
+    }],
   ],
   arrayOfArraysNested2: [
     [
@@ -224,6 +290,17 @@ export const routeStyles = {
         ]
       ],
     ],
+    [
+      ['/method', {
+        get: () => ({ body: 'works get' }),
+        post: () => ({ body: 'works post' }),
+        delete: () => ({ body: 'works delete' }),
+        put: () => ({ body: 'works put' }),
+      }],
+      ['/allmethods', {
+        use: () => ({ body: 'works use' }),
+      }],
+    ]
   ],
   arrayOfArraysNestedObjectOfObjects: [
     [
@@ -257,6 +334,19 @@ export const routeStyles = {
         },
       },
     ],
+    ['/method', [
+      ['/', {
+        get: () => ({ body: 'works get' }),
+        post: () => ({ body: 'works post' }),
+        delete: () => ({ body: 'works delete' }),
+        put: () => ({ body: 'works put' }),
+      }],
+    ]],
+    ['/allmethods', [
+      ['/', {
+        use: () => ({ body: 'works use' }),
+      }]
+    ]],
   ],
   objectOfObjectsNested: {
     '/': {
@@ -283,6 +373,19 @@ export const routeStyles = {
           }),
         ],
       },
+    },
+    '/method': {
+      '/': {
+        get: () => ({ body: 'works get' }),
+        post: () => ({ body: 'works post' }),
+        delete: () => ({ body: 'works delete' }),
+        put: () => ({ body: 'works put' }),
+      }
+    },
+    '/allmethods': {
+      '/': {
+        use: () => ({ body: 'works use' }),
+      }
     },
   },
   objectOfArraysNested: {
@@ -312,6 +415,15 @@ export const routeStyles = {
         ],
       },
     ],
+    '/method': ['/', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    '/allmethods': ['/', {
+      use: () => ({ body: 'works use' }),
+    }],
   },
   objectOfArraysNestedWithMiddleware: {
     '/': {
@@ -338,6 +450,15 @@ export const routeStyles = {
         }),
       },
     ],
+    '/method': ['/', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    '/allmethods': ['/', {
+      use: () => ({ body: 'works use' }),
+    }],
   },
   objectOfArraysNested2: {
     '/': {
@@ -367,7 +488,16 @@ export const routeStyles = {
           ],
         },
       ],
-    ]
+    ],
+    '/method': ['/', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    '/allmethods': ['/', {
+      use: () => ({ body: 'works use' }),
+    }],
   },
   arrayOfArraysNestedWithMiddleware: [
     [
@@ -404,6 +534,15 @@ export const routeStyles = {
         ]
       ],
     ],
+    ['/method', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    ['/allmethods', {
+      use: () => ({ body: 'works use' }),
+    }],
   ],
   arrayOfArraysNestedWithMiddleware2: [
     [
@@ -438,5 +577,14 @@ export const routeStyles = {
         },
       ]
     ],
+    ['/method', {
+      get: () => ({ body: 'works get' }),
+      post: () => ({ body: 'works post' }),
+      delete: () => ({ body: 'works delete' }),
+      put: () => ({ body: 'works put' }),
+    }],
+    ['/allmethods', {
+      use: () => ({ body: 'works use' }),
+    }],
   ],
 };

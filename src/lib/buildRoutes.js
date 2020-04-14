@@ -6,6 +6,8 @@ const defaultRouterOptions = {
 };
 
 const methodsRecognized = [
+  'use',
+
   'get',
   'post',
   'put',

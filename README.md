@@ -686,6 +686,10 @@ See the demo app for tests examples.
 
 ## Changelog
 
+### 2.0.3
+- Fixed issue with `use` method not being supported
+- Updated tests
+
 ### 2.0.2
 - DEPRECATION: `simpleExpressMiddlewares` and `middlewares` options are deprecated, use `middleware` instead
 - DEPRECATION: `expressMiddlewares` option is deprecated, use `expressMiddleware` instead

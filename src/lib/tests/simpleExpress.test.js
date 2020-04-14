@@ -51,26 +51,70 @@ describe('simpleExpress', () => {
 
   describe('route', () => {
     Object.keys(routeStyles).forEach(routeStyle => {
-      it(`returns string body and status code with routes in ${routeStyle} format`, async () => {
-        const { app } = await simpleExpress({
-          routes: routeStyles[routeStyle],
+      describe(`in ${routeStyle} format`, () => {
+        it('returns string body and status code with', async () => {
+          const { app } = await simpleExpress({
+            routes: routeStyles[routeStyle],
+          });
+
+          await request(app)
+            .get('/')
+            .expect(201)
+            .expect('works');
+
+          await request(app)
+            .get('/foo/bar')
+            .set('authentication', 'token')
+            .expect(200)
+            .expect('authenticated');
+
+          return request(app)
+            .get('/foo/bar')
+            .expect(401)
+            .expect('unauthenticated');
         });
+        it('handles get, post, put, delete method', async () => {
+          const { app } = await simpleExpress({
+            routes: routeStyles[routeStyle],
+          });
 
-        await request(app)
-          .get('/')
-          .expect(201)
-          .expect('works');
+          await request(app)
+            .get('/method')
+            .expect('works get');
 
-        await request(app)
-          .get('/foo/bar')
-          .set('authentication', 'token')
-          .expect(200)
-          .expect('authenticated');
+          await request(app)
+            .post('/method')
+            .expect('works post');
 
-        return request(app)
-          .get('/foo/bar')
-          .expect(401)
-          .expect('unauthenticated');
+          await request(app)
+            .put('/method')
+            .expect('works put');
+
+          await request(app)
+            .delete('/method')
+            .expect('works delete');
+        });
+        it('handles use method', async () => {
+          const { app } = await simpleExpress({
+            routes: routeStyles[routeStyle],
+          });
+
+          await request(app)
+            .get('/allmethods')
+            .expect('works use');
+
+          await request(app)
+            .post('/allmethods')
+            .expect('works use');
+
+          await request(app)
+            .delete('/allmethods')
+            .expect('works use');
+
+          await request(app)
+            .put('/allmethods')
+            .expect('works use');
+        });
       });
     });
 
