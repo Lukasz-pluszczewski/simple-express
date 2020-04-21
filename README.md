@@ -688,6 +688,9 @@ See the demo app for tests examples.
 
 ## Changelog
 
+### 2.0.4
+- Added logo
+
 ### 2.0.3
 - Fixed issue with `use` method not being supported
 - Updated tests
