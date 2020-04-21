@@ -30,3 +30,4 @@ config
 .travis.yml
 CHANGELOG.md
 README.md
+logo.png

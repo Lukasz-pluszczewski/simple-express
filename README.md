@@ -1,6 +1,8 @@
 # Simple Express framework
 > Simple micro framework based on Express, allowing you to prototype APIs blazingly quickly
 
+![Express Logo](logo.png)
+
 Micro-framework that let's you create more readable route structure, use simple async functions as route handlers, with clear error handling and run fully functional express app in seconds.
 
 ## Getting started
