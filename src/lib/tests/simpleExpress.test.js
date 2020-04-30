@@ -3,7 +3,7 @@ import freePort from 'find-free-port';
 import simpleExpress, { ValidationError, checkPropTypes, wrapMiddleware, handleError } from '../index';
 import PropTypes from 'prop-types';
 
-import { routeStyles } from './testData/routes';
+import { routeStyles } from './testData/routeTypes';
 
 describe('simpleExpress', () => {
   let freePorts = [];
@@ -830,18 +830,229 @@ describe('simpleExpress', () => {
 
       const { app } = await simpleExpress({
         routes: [
-          {
-            path: '/',
-            handlers: {
-              get: [
-                () => error2,
-              ]
-            },
-          },
+          ['/', {
+            get: [
+              () => error2,
+            ]
+          }],
         ],
         errorHandlers: [
           handleError(Error1, errorHandler1),
           handleError(Error2, errorHandler2),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2).toHaveBeenCalledTimes(1);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+    it('chooses correct handler to handle the error when provided with list of error handlers', async () => {
+      const Error1 = class extends Error {};
+      const Error2 = class extends Error {};
+      const error2 = new Error2('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => error2,
+            ]
+          }],
+        ],
+        errorHandlers: [
+          handleError([
+            [Error1, errorHandler1],
+            [Error2, errorHandler2],
+          ]),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2).toHaveBeenCalledTimes(1);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+    it('chooses correct handler to handle the error when provided with more errors per handler', async () => {
+      const Error1 = class extends Error {};
+      const Error2a = class extends Error {};
+      const Error2b = class extends Error {};
+      const error2a = new Error2a('test error');
+      const error2b = new Error2b('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => error2a,
+            ]
+          }],
+          ['/b', {
+            get: [
+              () => error2b,
+            ]
+          }],
+        ],
+        errorHandlers: [
+          handleError(Error1, errorHandler1),
+          handleError([Error2a, Error2b], errorHandler2),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      await request(app)
+        .get('/b')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2a);
+      expect(errorHandler2.mock.calls[1][0]).toBe(error2b);
+      expect(errorHandler2).toHaveBeenCalledTimes(2);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+    it('chooses correct handler to handle the error when provided with list with more errors per handler', async () => {
+      const Error1 = class extends Error {};
+      const Error2a = class extends Error {};
+      const Error2b = class extends Error {};
+      const error2a = new Error2a('test error');
+      const error2b = new Error2b('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => error2a,
+            ]
+          }],
+          ['/b', {
+            get: [
+              () => error2b,
+            ]
+          }],
+        ],
+        errorHandlers: [
+          handleError([
+            [Error1, errorHandler1],
+            [[Error2a, Error2b], errorHandler2],
+          ]),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      await request(app)
+        .get('/b')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2a);
+      expect(errorHandler2.mock.calls[1][0]).toBe(error2b);
+      expect(errorHandler2).toHaveBeenCalledTimes(2);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+    it('chooses correct handler to handle the unknown error', async () => {
+      const Error1 = class extends Error {};
+      const Error2 = class extends Error {};
+      const error2 = new Error2('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => error2,
+            ]
+          }],
+        ],
+        errorHandlers: [
+          handleError(Error1, errorHandler1),
+          handleError(errorHandler2),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2).toHaveBeenCalledTimes(1);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+    it('chooses correct handler to handle the unknown error when provided with list of handlers', async () => {
+      const Error1 = class extends Error {};
+      const Error2 = class extends Error {};
+      const error2 = new Error2('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => error2,
+            ]
+          }],
+        ],
+        errorHandlers: [
+          handleError([
+            [Error1, errorHandler1],
+            errorHandler2,
+          ]),
+        ]
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect('works2');
+
+      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2).toHaveBeenCalledTimes(1);
+      expect(errorHandler1).toHaveBeenCalledTimes(0);
+    });
+    it('chooses correct handler to handle the unknown error when provided with nested list of handlers', async () => {
+      const Error1 = class extends Error {};
+      const Error2 = class extends Error {};
+      const error2 = new Error2('test error');
+      const errorHandler1 = jest.fn(() => ({ body: 'works1' }));
+      const errorHandler2 = jest.fn(() => ({ body: 'works2' }));
+
+      const { app } = await simpleExpress({
+        routes: [
+          ['/', {
+            get: [
+              () => error2,
+            ]
+          }],
+        ],
+        errorHandlers: [
+          handleError([
+            [Error1, errorHandler1],
+            [errorHandler2],
+          ]),
         ]
       });
 

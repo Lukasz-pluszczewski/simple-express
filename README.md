@@ -15,7 +15,6 @@ import simpleExpress from 'simple-express-framework';
 
 simpleExpress({
   port: 8080,
-  routeParams: { usersRepository },
   routes: [
     ['/hello', {
       get: () => ({ status: 200, body: 'Hello world' }),
@@ -27,6 +26,45 @@ simpleExpress({
 And that's all! Express server, listening on chosen port, with [reasonable default settings](#config) is up and running in seconds!
 
 But that's not all! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers) and more - everything just works!
+
+## Table of contents
+* [Getting started](#getting-started)
+* [Table of contents](#table-of-contents)
+* [Usage](#usage)
+   * [simpleExpress function](#simpleexpress-function)
+   * [simpleExpress config](#simpleexpress-config)
+   * [Handlers](#handlers)
+      * [Response objects](#response-objects)
+      * [Returning error](#returning-error)
+      * [Examples of handlers:](#examples-of-handlers)
+      * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
+   * [Error Handlers](#error-handlers)
+      * [handleError helper](#handleerror-helper)
+   * [Routes](#routes)
+      * [Array of arrays (recommended)](#array-of-arrays-recommended)
+      * [Array of objects](#array-of-objects)
+      * [Object of objects](#object-of-objects)
+      * [Reserved object keys](#reserved-object-keys)
+   * [Config](#config)
+   * [Global Middlewares](#global-middlewares)
+* [More usage examples](#more-usage-examples)
+   * [Hello world](#hello-world)
+   * [Simple users CRUD](#simple-users-crud)
+   * [Adding authentication](#adding-authentication)
+   * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
+   * [Error handling](#error-handling)
+   * [Disabling default middlewares](#disabling-default-middlewares)
+   * [Applying express middlewares](#applying-express-middlewares)
+   * [Sending response manually](#sending-response-manually)
+   * [Request validation](#request-validation)
+      * [Built-in prop-types helper](#built-in-prop-types-helper)
+      * [Express-validator](#express-validator)
+   * [Logging](#logging)
+   * [Testing the app](#testing-the-app)
+* [Development](#development)
+* [Changelog](#changelog)
+
+## Usage
 
 ### SimpleExpress function
 You run the app by executing simpleExpress function. All options are optional.
@@ -72,6 +110,7 @@ SimpleExpress handlers are similar to express handlers except they accept one ar
 - **xhr**: *boolean* Flag indicating the request is XHR request
 - **get**: *function* Function returning the request header
 - **getHeader**: *function* Alias for get()
+- **locals**: *object* [res.locals](https://expressjs.com/en/api.html#res.locals) object for storing data for current request
 - **next**: *function* Express' next function, triggers next middleware
 - **req**: *object* Express' req object
 - **res**: *object* Express' res object
@@ -101,6 +140,13 @@ Or just return an Error object (or instance of a class extending Error)
 ```js
 () => {
   return new Error('Something went wrong');
+};
+```
+
+Or throw an Error (or instance of a class extending Error)
+```js
+() => {
+  throw new Error('Something went wrong');
 };
 ```
 
@@ -158,13 +204,62 @@ All handlers can work as middlewares if they trigger next() instead of returning
         locals.user = user;
         return next();
       }
-      return new AuthenticationError('Unauthenticated'); // the same as "next(new AuthenticationError('Unauthenticated'))"
+
+      // the same as "next(new AuthenticationError('Unauthenticated'))"
+      return new AuthenticationError('Unauthenticated');
     },
     ({ locals }) => ({
       body: 'You are logged in as ' + locals.user.username,
     }),
   ]
 }
+```
+
+Middlewares can be chained in different ways:
+```js
+[
+  [
+    '/foo',
+    ({ getHeader, locals, next }) => {
+      const user = verifyToken(getHeader('authentication'))
+      if (user) {
+        locals.user = user;
+        return next();
+      }
+
+      // the same as "next(new AuthenticationError('Unauthenticated'))"
+      return new AuthenticationError('Unauthenticated');
+    },
+    {
+      get: ({ locals }) => ({
+        body: 'You are logged in as ' + locals.user.username,
+      }),
+    }
+  ]
+]
+```
+
+```js
+[
+  '/foo',
+  [
+    ({ getHeader, locals, next }) => {
+      const user = verifyToken(getHeader('authentication'))
+      if (user) {
+        locals.user = user;
+        return next();
+      }
+
+      // the same as "next(new AuthenticationError('Unauthenticated'))"
+      return new AuthenticationError('Unauthenticated');
+    },
+    {
+      get: ({ locals }) => ({
+        body: 'You are logged in as ' + locals.user.username,
+      }),
+    }
+  ]
+]
 ```
 
 ### Error Handlers
@@ -206,6 +301,68 @@ errorHandlers: [
   }
 ]
 ```
+
+#### handleError helper
+To make it easier for you to handle different types of errors, simpleExpress provides you with handleError helper:
+```js
+import { handleError } from 'simple-express-framework';
+
+//...
+
+errorHandlers: [
+  handleError(
+    AuthenticationError,
+    (error, { query, body, params, ... }) => ({
+      status: 401,
+      body: 'Unauthorized',
+    })
+  )
+  (error) => ({
+    status: 500,
+    body: 'Ups :('
+  }),
+]
+```
+
+You can also pass an array of error - errorHandler pairs to handleError helper function
+```js
+import { handleError } from 'simple-express-framework';
+
+//...
+
+errorHandlers: [
+  handleError([
+    [AuthenticationError, (error, { query, body, params, ... }) => ({
+      status: 401,
+      body: 'Unauthorized',
+    })],
+    [
+      (error) => ({
+        status: 500,
+        body: 'Ups :('
+      }),
+    ]
+  ])
+]
+```
+
+```js
+import { handleError } from 'simple-express-framework';
+
+//...
+
+errorHandlers: handleError([
+  [AuthenticationError, (error, { query, body, params, ... }) => ({
+    status: 401,
+    body: 'Unauthorized',
+  })],
+  (error) => ({
+    status: 500,
+    body: 'Ups :('
+  }),
+])
+```
+
 
 ### Routes
 The simpleExpress supports different formats of routes (in first two formats, paths can be either strings or regular expressions):
@@ -265,12 +422,13 @@ simpleExpress({
 ```
 
 #### Reserved object keys
-Because object keys can be used as route paths but also as method names (like get, post etc.) or as names like path, handlers and routes here is the list of reserved key names that can't be used as route paths:
+Because object keys can be used as route paths but also as method names (like get, post etc.) or as names like path, handlers and routes here is the list of reserved key names that can't be used as route paths when you use "Object of objects" format:
 
 *Please note that all of those can be used with slash at the beginning like `/path` or `/post`. Only exactly listed strings are reserved.*
 - path
 - handlers
 - routes
+- use
 - get
 - post
 - put
@@ -306,7 +464,7 @@ By default, JSON body parser, cors and cookie parser middlewares are configured.
 - **cookieParser**: *[secret, options]|false* Arguments for cookie-parser middleware. If set to `false` the cookie parser middleware will not be applied.
 
 ### Global Middlewares
-Global middlewares can be added in `globalMiddleware` field. It is array of handlers (each handlers looks exactly like route handlers, with the same parameters).
+Global middlewares can be added in `middleware` field. It is array of handlers (each handlers looks exactly like route handlers, with the same parameters).
 ```js
 simpleExpress({
   port: 8080,
@@ -335,21 +493,26 @@ simpleExpress({
 ### Simple users CRUD
 ```js
 import simpleExpress from 'simple-express-framework';
-import users from 'users';
+
+import connectDb from './connectDb';
+import createUsersRepository from './usersRepository';
+
+const db = connectDb();
+const usersRepository = createUsersRepository(db);
 
 simpleExpress({
   port: 8080,
-  routeParams: { usersRepository },
+  routeParams: { users: usersRepository },
   routes: [
     ['/users', {
-      get: async ({ query: { search } }) => {
+      get: async ({ query: { search }, users }) => {
         const allUsers = await users.getAll(search);
 
         return {
           body: allUsers,
         };
       },
-      post: async ({ body }) => {
+      post: async ({ body, users }) => {
         const results = await users.create(body);
 
         return {
@@ -358,7 +521,7 @@ simpleExpress({
         };
     }],
     ['users/:id', {
-      get: async ({ params: { id } }) => {
+      get: async ({ params: { id }, users }) => {
         const user = await users.getById(id);
 
         if (user) {
@@ -372,7 +535,7 @@ simpleExpress({
           body: 'User not found',
         };
       },
-      put: async ({ params: { id }, body }) => {
+      put: async ({ params: { id }, body, users }) => {
         const { id } = params;
         const result = await users.updateById(id, body);
 
@@ -489,14 +652,12 @@ simpleExpress({
         };
       }
 
-      next(error);
+      return error;
     },
-    (error) => {
-      return {
-        status: 500,
-        body: error.message || 'Unknown error',
-      };
-    },
+    (error) => (){
+      status: 500,
+      body: error.message || 'Unknown error',
+    }),
   ],
 });
 ```
@@ -676,7 +837,7 @@ You can enable only some logs:
 - `DEBUG=simpleExpress`: General logs (like "App started on port", or "ERROR: port already in use")
 - `DEBUG=simpleExpress:request`: Log all requests with response time
 - `DEBUG=simpleExpress:stats`: Simple express statistics, like registered routes, middlewares etc.
-- `DEBUG=simpleExpress:warning`: Unimplemented features and other warnings
+- `DEBUG=simpleExpress:warning`: Unimplemented features, deprecations and other warnings
 
 ### Testing the app
 See the demo app for tests examples.
@@ -684,9 +845,21 @@ See the demo app for tests examples.
 ## Development
 - Clone the repository
 - `npm i`
-- `npm run test`
+
+**Running tests**
+`npm run test`
+
+**Starting demo app**
+`npm run demo`
 
 ## Changelog
+
+### 2.1.0
+- Added more features to handleError helper (handling unknown error, passing more error - errorHandler pairs)
+- Added more tests for handleError helper
+- Added table of contents in readme
+- Some minor improvements in readme
+- Small fixes
 
 ### 2.0.4
 - Added logo
@@ -719,4 +892,4 @@ See the demo app for tests examples.
 - Added more tests for error handlers
 
 ### 1.0.2
-Minor fixes
+- Minor fixes

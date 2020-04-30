@@ -65,12 +65,8 @@ const getRoutesAgregator = ({ stats }) => {
 
   const routesAgregator = {
     registerRoute: ({ path, method, handler }) => {
-      if (!method) {
-        // middleware, not logged for now
-        return;
-      }
       const pathNormalized = normalizePath(path);
-      const methodNormalized = mapMethod(method);
+      const methodNormalized = method ? mapMethod(method) : 'use (middleware)';
 
       _.set(routes, [...pathNormalized, method, 'path'], path);
       _.set(routes, [...pathNormalized, method, 'method'], methodNormalized);
