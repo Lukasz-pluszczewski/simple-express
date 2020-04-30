@@ -80,7 +80,7 @@ const simpleExpress = async({
   port,
   routes = [],
   middleware = [],
-  middlewares = [], // TODO remove in 3.0.0
+  middlewares, // TODO remove in 3.0.0
   simpleExpressMiddlewares, // TODO remove in 3.0.0
   globalMiddlewares, // TODO remove in 3.0.0
   errorHandlers = [],
@@ -166,8 +166,9 @@ const simpleExpress = async({
   })(routes));
 
   // applying error handlers
-  stats.set('errorHandlers', errorHandlers.length);
-  errorHandlers.forEach(errorHandler => {
+  const errorHandlersFlat = _.flattenDeep(errorHandlers);
+  stats.set('errorHandlers', errorHandlersFlat.length);
+  errorHandlersFlat.forEach(errorHandler => {
     app.use(createErrorHandlerWithParams(errorHandler));
   });
 
