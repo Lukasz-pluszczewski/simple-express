@@ -29,8 +29,7 @@ const getDefaultConfig = (userConfig, defaultConfig = {
   jsonBodyParser: null,
   cookieParser: [],
 }) => {
-  const config = {};
-  if (!config) {
+  if (!userConfig) {
     return defaultConfig;
   }
 
@@ -38,7 +37,7 @@ const getDefaultConfig = (userConfig, defaultConfig = {
     cors = defaultConfig.cors,
     jsonBodyParser = defaultConfig.jsonBodyParser,
     cookieParser = defaultConfig.cookieParser,
-  } = config;
+  } = userConfig;
 
   return {
     cors,

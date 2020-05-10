@@ -854,6 +854,9 @@ See the demo app for tests examples.
 
 ## Changelog
 
+### 2.2.0
+- Fixed applying custom config for default middlewares
+
 ### 2.1.0
 - Added more features to handleError helper (handling unknown error, passing more error - errorHandler pairs)
 - Added more tests for handleError helper
