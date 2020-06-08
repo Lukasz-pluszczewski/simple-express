@@ -1,6 +1,6 @@
 {
   "name": "simple-express-framework",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "main": "build/index.js",
   "scripts": {
     "start": "node scripts/start.js",
@@ -57,6 +57,7 @@
     "html-webpack-plugin": "4.0.0-beta.5",
     "identity-obj-proxy": "3.0.0",
     "jest": "24.7.1",
+    "jest-extended": "^0.11.5",
     "jest-pnp-resolver": "1.2.1",
     "jest-resolve": "24.7.1",
     "mini-css-extract-plugin": "0.6.0",
@@ -97,6 +98,7 @@
     "setupFiles": [
       "react-app-polyfill/jsdom"
     ],
+    "setupFilesAfterEnv": ["jest-extended"],
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}",
       "<rootDir>/src/**/?(*.)(spec|test).{js,jsx,ts,tsx}"

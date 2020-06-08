@@ -1066,4 +1066,237 @@ describe('simpleExpress', () => {
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe('plugins', () => {
+    describe('getHandlerParams', () => {
+      it('add additional route params', async () => {
+        const getHandlerParams = jest.fn(routeParams => ({
+          ...routeParams,
+          additionalParam: 'works',
+        }));
+        const plugin = jest.fn(() => ({ getHandlerParams }));
+
+        const routes = [
+          ['/', {
+            get: [
+              ({ additionalParam }) => ({ body: additionalParam }),
+            ]
+          }],
+        ];
+
+        const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works');
+
+        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
+        expect(plugin).toHaveBeenCalledTimes(1);
+      });
+      it('are triggered in the right order', async () => {
+        const getHandlerParams1 = jest.fn(routeParams => ({
+          ...routeParams,
+          additionalParam: 'works1',
+        }));
+        const getHandlerParams2 = jest.fn(routeParams => ({
+          ...routeParams,
+          additionalParam: 'works2',
+        }));
+        const plugin1 = jest.fn(() => ({ getHandlerParams: getHandlerParams1 }));
+        const plugin2 = jest.fn(() => ({ getHandlerParams: getHandlerParams2 }));
+
+        const routes = [
+          ['/', {
+            get: [
+              ({ additionalParam }) => ({ body: additionalParam }),
+            ]
+          }],
+        ];
+
+        const { app } = await simpleExpress({
+          routes,
+          plugins: [
+            plugin1,
+            plugin2,
+          ],
+        });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works2');
+
+        expect(plugin1.mock.calls[0][0].routes).toBe(routes);
+        expect(plugin2.mock.calls[0][0].routes).toBe(routes);
+        expect(plugin1).toHaveBeenCalledTimes(1);
+        expect(plugin2).toHaveBeenCalledTimes(1);
+        expect(plugin1).toHaveBeenCalledBefore(plugin2);
+      });
+    });
+    describe('getErrorHandlerParams', () => {
+      it('add additional error handler params', async () => {
+        const getErrorHandlerParams = jest.fn(routeParams => ({
+          ...routeParams,
+          additionalParam: 'works',
+        }));
+        const plugin = jest.fn(() => ({ getErrorHandlerParams }));
+
+        const routes = [
+          ['/', {
+            get: [
+              () => new Error('Ups!'),
+            ]
+          }],
+        ];
+
+        const errorHandlers = [
+          (error, { additionalParam }) => ({ body: additionalParam })
+        ];
+
+        const { app } = await simpleExpress({ routes, errorHandlers, plugins: [ plugin ] });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works');
+
+        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
+        expect(plugin.mock.calls[0][0].errorHandlers).toEqual(errorHandlers);
+        expect(plugin).toHaveBeenCalledTimes(1);
+      });
+      it('are triggered in the right order', async () => {
+        const getErrorHandlerParams1 = jest.fn(routeParams => ({
+          ...routeParams,
+          additionalParam: 'works1',
+        }));
+        const getErrorHandlerParams2 = jest.fn(routeParams => ({
+          ...routeParams,
+          additionalParam: 'works2',
+        }));
+        const plugin1 = jest.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams1 }));
+        const plugin2 = jest.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams2 }));
+
+        const routes = [
+          ['/', {
+            get: [
+              () => new Error('Ups!'),
+            ]
+          }],
+        ];
+
+        const errorHandlers = [
+          (error, { additionalParam }) => ({ body: additionalParam })
+        ];
+
+        const { app } = await simpleExpress({
+          routes,
+          errorHandlers,
+          plugins: [
+            plugin1,
+            plugin2,
+          ],
+        });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works2');
+
+        expect(plugin1.mock.calls[0][0].routes).toBe(routes);
+        expect(plugin1.mock.calls[0][0].errorHandlers).toBe(errorHandlers);
+        expect(plugin2.mock.calls[0][0].routes).toBe(routes);
+        expect(plugin2.mock.calls[0][0].errorHandlers).toBe(errorHandlers);
+        expect(plugin1).toHaveBeenCalledTimes(1);
+        expect(plugin2).toHaveBeenCalledTimes(1);
+        expect(plugin1).toHaveBeenCalledBefore(plugin2);
+      });
+    });
+    describe('mapResponse', () => {
+      it('maps response', async () => {
+        const mapResponse = jest.fn(response => ({
+          ...response,
+          body: response.alternativeBody,
+        }));
+        const plugin = jest.fn(() => ({ mapResponse }));
+
+        const routes = [
+          ['/', {
+            get: [
+              () => ({ alternativeBody: 'works' }),
+            ]
+          }],
+        ];
+
+        const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works');
+
+        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
+        expect(plugin).toHaveBeenCalledTimes(1);
+      });
+      it('disables response and sends it manually', async () => {
+        const mapResponse = jest.fn((response, { res }) => {
+          res.send(response.alternativeBody);
+          return null;
+        });
+        const plugin = jest.fn(() => ({ mapResponse }));
+
+        const routes = [
+          ['/', {
+            get: [
+              () => ({ alternativeBody: 'works' }),
+            ]
+          }],
+        ];
+
+        const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works');
+
+        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
+        expect(plugin).toHaveBeenCalledTimes(1);
+      });
+      it('stops executing plugins after manual response', async () => {
+        const mapResponse1 = jest.fn((response, { res }) => {
+          res.send(response.alternativeBody);
+          return null;
+        });
+        const plugin1 = jest.fn(() => ({ mapResponse: mapResponse1 }));
+
+        const mapResponse2 = jest.fn((response, { res }) => {
+          res.send('I should not be sent');
+          return null;
+        });
+        const plugin2 = jest.fn(() => ({ mapResponse: mapResponse2 }));
+
+        const routes = [
+          ['/', {
+            get: [
+              () => ({ alternativeBody: 'works' }),
+            ]
+          }],
+        ];
+
+        const { app } = await simpleExpress({ routes, plugins: [ plugin1, plugin2 ] });
+
+        await request(app)
+          .get('/')
+          .expect(200)
+          .expect('works');
+
+        expect(plugin1.mock.calls[0][0].routes).toEqual(routes);
+        expect(plugin1).toHaveBeenCalledTimes(1);
+
+        expect(mapResponse2).not.toHaveBeenCalled();
+      });
+    });
+
+  });
 });
