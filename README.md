@@ -478,14 +478,14 @@ simpleExpress({
 If you need to use express middlewares directly, you can pass them to expressMiddleware array.
 
 ## Plugins
-You can modify the behaviour of simpleExpress with plugins. Each plugin is a factory, that receives simpleExpress config (all parameters passed to simpleExpress function except `plugins`) as parameter, and returns plugin object.
+You can modify the behaviour of simpleExpress with plugins. Each plugin is a factory, that receives simpleExpress config (all parameters passed to simpleExpress function) as parameter, and returns plugin object.
 
-Each plugin object is an object of one or more of the following functions:
+Plugin object is an object of one or more of the following functions:
 - getHandlerParams
 - getErrorHandlerParams
 - mapResponse
 
-Plugins' functions are triggered in the order the appear in the plugins array. In case of mapResponse, not all plugins are necessarily triggered (see details below).
+Plugins' functions are triggered in the order they appear in the plugins array. In case of mapResponse, not all plugins are necessarily triggered (see details below).
 
 Here is an example of plugin that adds cookies parsed by cookie-parser to handler params.
 ```js
@@ -537,6 +537,7 @@ simpleExpress({
 ```
 
 ### getHandlerParams, getErrorHandlerParams
+These functions are triggered for all plugins, in order. Each plugin gets what the previous returned (default handler params are passed to the first plugin in chain)
 **Arguments**
 - **handlerParams**: *object* [Handler params](#handlers) returned by the previous plugin
 
@@ -544,7 +545,7 @@ simpleExpress({
 - **handlerParams**: *object* [Handler params](#handlers) passed to the next plugin
 
 ### mapResponse
-mapResponse chain can be broken if a plugin returns null or `{ type: 'none' }` object. That way we prevent sending the response twice by two different plugins.
+Each plugin gets what previous returned (response object returned from handler is passed to the first plugin in chain). Chain can be broken if a plugin returns null or `{ type: 'none' }` object. Also, no plugins are triggered, if handler returned null or `{ type: 'none' }`. That way we prevent sending the response twice by two different plugins.
 
 **Arguments**
 - **responseObject**: *object* [Response object](#response-objects) returned by the previous plugin

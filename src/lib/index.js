@@ -117,6 +117,7 @@ const simpleExpress = async({
   // simpleExpress config for plugins
   const simpleExpressConfigForPlugins = {
     port,
+    plugins: rawPlugins,
     routes,
     middleware,
     errorHandlers,
