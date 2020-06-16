@@ -77,6 +77,7 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
 
 const simpleExpress = async({
   port,
+  plugins: rawPlugins = [],
   routes = [],
   middleware = [],
   middlewares, // TODO remove in 3.0.0
@@ -113,6 +114,23 @@ const simpleExpress = async({
     expressMiddleware = [...expressMiddleware, ...expressMiddlewares];
   }
 
+  // simpleExpress config for plugins
+  const simpleExpressConfigForPlugins = {
+    port,
+    plugins: rawPlugins,
+    routes,
+    middleware,
+    errorHandlers,
+    expressMiddleware,
+    config: userConfig,
+    routeParams,
+    app: userApp,
+    server: userServer,
+  };
+
+  // preparePlugins
+  const plugins = rawPlugins.map(plugin => plugin(simpleExpressConfigForPlugins))
+
   // create stats
   const stats = getStats(port);
 
@@ -142,8 +160,8 @@ const simpleExpress = async({
     app.use(cookieParser(config.cookieParser));
   }
 
-  const createHandlerWithParams = createHandler(routeParams, simpleExpressHelper);
-  const createErrorHandlerWithParams = createErrorHandler(routeParams, simpleExpressHelper);
+  const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins }, simpleExpressHelper);
+  const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins }, simpleExpressHelper);
 
   // applying custom express middlewares
   const expressMiddlewareFlat = _.flattenDeep(expressMiddleware);

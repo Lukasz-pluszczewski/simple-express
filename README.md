@@ -25,7 +25,7 @@ simpleExpress({
 
 And that's all! Express server, listening on chosen port, with [reasonable default settings](#config) is up and running in seconds!
 
-But that's not all! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers) and more - everything just works!
+But that's not all! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers), [plugins](#plugins) and more - everything just works!
 
 ## Table of contents
 * [Getting started](#getting-started)
@@ -47,6 +47,8 @@ But that's not all! Dive in in the [Examples](#more-usage-examples) section to s
       * [Reserved object keys](#reserved-object-keys)
    * [Config](#config)
    * [Global Middlewares](#global-middlewares)
+* [Plugins](#plugins)
+   * [Plugins API](#plugins-api)
 * [More usage examples](#more-usage-examples)
    * [Hello world](#hello-world)
    * [Simple users CRUD](#simple-users-crud)
@@ -475,6 +477,83 @@ simpleExpress({
 
 If you need to use express middlewares directly, you can pass them to expressMiddleware array.
 
+## Plugins
+You can modify the behaviour of simpleExpress with plugins. Each plugin is a factory, that receives simpleExpress config (all parameters passed to simpleExpress function) as parameter, and returns plugin object.
+
+Plugin object is an object of one or more of the following functions:
+- getHandlerParams
+- getErrorHandlerParams
+- mapResponse
+
+Plugins' functions are triggered in the order they appear in the plugins array. In case of mapResponse, not all plugins are necessarily triggered (see details below).
+
+Here is an example of plugin that adds cookies parsed by cookie-parser to handler params.
+```js
+const cookiesPlugin = (simpleExpressConfig) => ({
+  getHandlerParams: params => ({
+    ...params,
+    cookies: params.req.cookies,
+  }),
+  getErrorHandlerParams: params => ({
+    ...params,
+    cookies: params.req.cookies,
+  }),
+});
+
+simpleExpress({
+  port: 8080,
+  plugins: [
+    cookiesPlugin,
+  ],
+  ...
+});
+```
+
+
+And yet another plugin, this time, allowing you to serve file easily:
+```js
+const serveFilePlugin = simpleExpressConfig => ({
+  mapResponse: (responseObject, { res }) => {
+    if (responseObject.file) {
+      res.sendFile(responseObject.file, err => {
+        if (err) {
+          return next(err)
+        }
+      })
+      return null;
+    }
+
+    return responseObject;
+  },
+});
+
+simpleExpress({
+  port: 8080,
+  plugins: [
+    serveFilePlugin,
+  ],
+  ...
+});
+```
+
+### getHandlerParams, getErrorHandlerParams
+These functions are triggered for all plugins, in order. Each plugin gets what the previous returned (default handler params are passed to the first plugin in chain)
+**Arguments**
+- **handlerParams**: *object* [Handler params](#handlers) returned by the previous plugin
+
+**Returns**
+- **handlerParams**: *object* [Handler params](#handlers) passed to the next plugin
+
+### mapResponse
+Each plugin gets what previous returned (response object returned from handler is passed to the first plugin in chain). Chain can be broken if a plugin returns null or `{ type: 'none' }` object. Also, no plugins are triggered, if handler returned null or `{ type: 'none' }`. That way we prevent sending the response twice by two different plugins.
+
+**Arguments**
+- **responseObject**: *object* [Response object](#response-objects) returned by the previous plugin
+
+**Returns**
+- **responseObject**: *object* [Response object](#response-objects) passed to the next plugin
+
+
 ## More usage examples
 ### Hello world
 ```js
@@ -853,6 +932,12 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+
+### 2.3.0
+- Added plugins support
+- Added support for getHandlerParams plugin method
+- Added support for getErrorHandlerParams plugin method
+- Added support for mapResponse plugin method
 
 ### 2.2.0
 - Fixed applying custom config for default middlewares
