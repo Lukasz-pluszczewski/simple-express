@@ -25,7 +25,7 @@ simpleExpress({
 
 And that's all! Express server, listening on chosen port, with [reasonable default settings](#config) is up and running in seconds!
 
-But that's not all! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers), [plugins](#plugins) and more - everything just works!
+But there's more! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers) and more - everything just works and is nearly infinitely expandable thanks to [plugin](#plugins) support!
 
 ## Table of contents
 * [Getting started](#getting-started)
