@@ -1,4 +1,4 @@
-export const forEachSequential = async(collection, cb, initialValue) => {
+export const forEachSequential = async (collection, cb, initialValue) => {
   const results = [];
   let previousResult = initialValue;
 
@@ -12,4 +12,4 @@ export const forEachSequential = async(collection, cb, initialValue) => {
   return { lastResult: previousResult, results };
 };
 
-export const forEachParallel = async(arr, cb) => Promise.all(arr.map(cb));
+export const forEachParallel = async (arr, cb) => Promise.all(arr.map(cb));

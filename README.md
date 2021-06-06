@@ -31,38 +31,38 @@ But there's more! Dive in in the [Examples](#more-usage-examples) section to see
 * [Getting started](#getting-started)
 * [Table of contents](#table-of-contents)
 * [Usage](#usage)
-   * [simpleExpress function](#simpleexpress-function)
-   * [simpleExpress config](#simpleexpress-config)
-   * [Handlers](#handlers)
-      * [Response objects](#response-objects)
-      * [Returning error](#returning-error)
-      * [Examples of handlers:](#examples-of-handlers)
-      * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
-   * [Error Handlers](#error-handlers)
-      * [handleError helper](#handleerror-helper)
-   * [Routes](#routes)
-      * [Array of arrays (recommended)](#array-of-arrays-recommended)
-      * [Array of objects](#array-of-objects)
-      * [Object of objects](#object-of-objects)
-      * [Reserved object keys](#reserved-object-keys)
-   * [Config](#config)
-   * [Global Middlewares](#global-middlewares)
+    * [simpleExpress function](#simpleexpress-function)
+    * [simpleExpress config](#simpleexpress-config)
+    * [Handlers](#handlers)
+        * [Response objects](#response-objects)
+        * [Returning error](#returning-error)
+        * [Examples of handlers:](#examples-of-handlers)
+        * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
+    * [Error Handlers](#error-handlers)
+        * [handleError helper](#handleerror-helper)
+    * [Routes](#routes)
+        * [Array of arrays (recommended)](#array-of-arrays-recommended)
+        * [Array of objects](#array-of-objects)
+        * [Object of objects](#object-of-objects)
+        * [Reserved object keys](#reserved-object-keys)
+    * [Config](#config)
+    * [Global Middlewares](#global-middlewares)
 * [Plugins](#plugins)
-   * [Plugins API](#plugins-api)
+    * [Plugins API](#plugins-api)
 * [More usage examples](#more-usage-examples)
-   * [Hello world](#hello-world)
-   * [Simple users CRUD](#simple-users-crud)
-   * [Adding authentication](#adding-authentication)
-   * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
-   * [Error handling](#error-handling)
-   * [Disabling default middlewares](#disabling-default-middlewares)
-   * [Applying express middlewares](#applying-express-middlewares)
-   * [Sending response manually](#sending-response-manually)
-   * [Request validation](#request-validation)
-      * [Built-in prop-types helper](#built-in-prop-types-helper)
-      * [Express-validator](#express-validator)
-   * [Logging](#logging)
-   * [Testing the app](#testing-the-app)
+    * [Hello world](#hello-world)
+    * [Simple users CRUD](#simple-users-crud)
+    * [Adding authentication](#adding-authentication)
+    * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
+    * [Error handling](#error-handling)
+    * [Disabling default middlewares](#disabling-default-middlewares)
+    * [Applying express middlewares](#applying-express-middlewares)
+    * [Sending response manually](#sending-response-manually)
+    * [Request validation](#request-validation)
+        * [Built-in prop-types helper](#built-in-prop-types-helper)
+        * [Express-validator](#express-validator)
+    * [Logging](#logging)
+    * [Testing the app](#testing-the-app)
 * [Development](#development)
 * [Changelog](#changelog)
 
@@ -125,10 +125,10 @@ Handlers should return the response object:
 - **redirect**: *string* Url to redirect to
 - **type**: *string* Passes the value to `res.type()` express method which sets the Content-Type HTTP header to the value received if it contains '/' (e.g. `application/json`), or determines the mime type by [mime.lookup\(\)](https://github.com/broofa/node-mime#mimelookuppath)
 - **method**: *string* Response method, one of the following values:
-  - *json* - the response will be sent using `res.json` method
-  - *send* - the response will be sent using `res.send` method
-  - *default* - alias for send
-  - *none* - the response will not be sent (useful if you want to send a response manually), the same effect can be achieved by returning falsy value from handler.
+    - *json* - the response will be sent using `res.json` method
+    - *send* - the response will be sent using `res.send` method
+    - *default* - alias for send
+    - *none* - the response will not be sent (useful if you want to send a response manually), the same effect can be achieved by returning falsy value from handler.
 
 #### Returning error
 To pass an error to error handlers, handler can either pass an error to next() function:

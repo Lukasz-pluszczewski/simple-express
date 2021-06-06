@@ -1,5 +1,5 @@
-import log from './log';
-import getResponseMethod from './getResponseMethod';
+import log from "./log";
+import getResponseMethod from "./getResponseMethod";
 
 const sendResponse = (req, res, result) => {
   if (!result) {
@@ -7,7 +7,7 @@ const sendResponse = (req, res, result) => {
   }
 
   if (res.headersSent) {
-    return log('ERROR: Headers have already been sent');
+    return log("ERROR: Headers have already been sent");
   }
 
   const {
@@ -35,9 +35,19 @@ const sendResponse = (req, res, result) => {
       } else {
         res.redirect(redirect);
       }
-      log.request(`Request ended with redirect after ${Date.now() - req.requestTiming}ms; ${req.protocol}, ${req.originalUrl}${status && `, status: ${status}`}`);
+      log.request(
+        `Request ended with redirect after ${
+          Date.now() - req.requestTiming
+        }ms; ${req.protocol}, ${req.originalUrl}${
+          status && `, status: ${status}`
+        }`
+      );
     } else {
-      log.request(`Request ended with response after ${Date.now() - req.requestTiming}ms; ${req.protocol}, ${req.originalUrl}, status: ${status || 200}`);
+      log.request(
+        `Request ended with response after ${
+          Date.now() - req.requestTiming
+        }ms; ${req.protocol}, ${req.originalUrl}, status: ${status || 200}`
+      );
       res.status(status || 200)[responseMethod](body);
     }
   }

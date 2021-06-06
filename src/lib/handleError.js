@@ -1,18 +1,22 @@
-import _ from 'lodash';
+import _ from "lodash";
 
-const validateErrorClass = errorClass => {
+const validateErrorClass = (errorClass) => {
   if (errorClass && !_.isFunction(errorClass)) {
-    throw new Error(`handleError arguments error: expected constructor (e.g. Error class) but got ${typeof errorClass}`);
+    throw new Error(
+      `handleError arguments error: expected constructor (e.g. Error class) but got ${typeof errorClass}`
+    );
   }
 };
 
-const validateHandler = errorHandler => {
+const validateHandler = (errorHandler) => {
   if (!_.isFunction(errorHandler)) {
-    throw new Error(`handleError arguments error: expected error handler function but got ${typeof errorHandler}`);
+    throw new Error(
+      `handleError arguments error: expected error handler function but got ${typeof errorHandler}`
+    );
   }
 };
 
-const getArgs = args => {
+const getArgs = (args) => {
   if (args.length === 1 && Array.isArray(args[0])) {
     return args[0].reduce((accu, el) => {
       if (!Array.isArray(el)) {
@@ -20,7 +24,7 @@ const getArgs = args => {
       } else if (el.length === 1) {
         accu.push([null, el[0]]);
       } else if (Array.isArray(el[0])) {
-        el[0].forEach(errorInstance => {
+        el[0].forEach((errorInstance) => {
           accu.push([errorInstance, el[1]]);
         });
       } else {
@@ -36,7 +40,7 @@ const getArgs = args => {
   }
 
   if (Array.isArray(args[0])) {
-    return args[0].map(errorInstance => [errorInstance, args[1]]);
+    return args[0].map((errorInstance) => [errorInstance, args[1]]);
   }
 
   return [args];
@@ -51,7 +55,7 @@ const handleError = ([errorClass, errorHandler]) => {
       return errorHandler(error, handlerParams);
     }
     return error;
-  }
+  };
 };
 
 export default (...args) => {

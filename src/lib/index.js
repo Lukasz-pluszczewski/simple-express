@@ -1,21 +1,21 @@
-import http from 'http';
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
-import _ from 'lodash';
+import http from "http";
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
+import _ from "lodash";
 
-import log from './log';
-import getStats from './stats';
-import buildRoutes from './buildRoutes';
-import { createHandler, createErrorHandler } from './createHandler';
-import propTypesMiddleware from './propTypesMiddleware';
-import handleError from './handleError.js';
+import log from "./log";
+import getStats from "./stats";
+import buildRoutes from "./buildRoutes";
+import { createHandler, createErrorHandler } from "./createHandler";
+import propTypesMiddleware from "./propTypesMiddleware";
+import handleError from "./handleError.js";
 
 export const checkPropTypes = propTypesMiddleware;
 
-const defaultAppValue = Symbol('defaultAppValue');
-const defaultServerValue = Symbol('defaultServerValue');
+const defaultAppValue = Symbol("defaultAppValue");
+const defaultServerValue = Symbol("defaultServerValue");
 
 export class ValidationError extends Error {
   constructor(errors) {
@@ -24,11 +24,14 @@ export class ValidationError extends Error {
   }
 }
 
-const getDefaultConfig = (userConfig, defaultConfig = {
-  cors: null,
-  jsonBodyParser: null,
-  cookieParser: [],
-}) => {
+const getDefaultConfig = (
+  userConfig,
+  defaultConfig = {
+    cors: null,
+    jsonBodyParser: null,
+    cookieParser: [],
+  }
+) => {
   if (!userConfig) {
     return defaultConfig;
   }
@@ -48,14 +51,18 @@ const getDefaultConfig = (userConfig, defaultConfig = {
 
 const createSimpleExpressHelper = ({ routes, routeParams }) => {
   return {
-    runRoute: async(label, method, data) => {
+    runRoute: async (label, method, data) => {
       if (!Array.isArray(routes)) {
-        log.warning(`Only "array of objects" style routes are supported by runRoute helper`);
+        log.warning(
+          `Only "array of objects" style routes are supported by runRoute helper`
+        );
         return Promise.reject();
       }
-      const route = _.find(routes, route => {
+      const route = _.find(routes, (route) => {
         if (Array.isArray(route)) {
-          log.warning(`Only "array of objects" style routes are supported by runRoute helper`);
+          log.warning(
+            `Only "array of objects" style routes are supported by runRoute helper`
+          );
           return Promise.reject();
         }
       });
@@ -63,7 +70,7 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
         return Promise.reject();
       }
 
-      const handler = _.get(route, ['handler', method]);
+      const handler = _.get(route, ["handler", method]);
       if (!handler) {
         return Promise.reject();
       }
@@ -74,8 +81,7 @@ const createSimpleExpressHelper = ({ routes, routeParams }) => {
   };
 };
 
-
-const simpleExpress = async({
+const simpleExpress = async ({
   port,
   plugins: rawPlugins = [],
   routes = [],
@@ -98,19 +104,27 @@ const simpleExpress = async({
   }
   // validate config
   if (globalMiddlewares) {
-    log.warning('"globalMiddlewares" option is deprecated. Use "middleware" option.');
+    log.warning(
+      '"globalMiddlewares" option is deprecated. Use "middleware" option.'
+    );
     middleware = [...middleware, ...globalMiddlewares];
   }
   if (simpleExpressMiddlewares) {
-    log.warning('"simpleExpressMiddlewares" option is deprecated. Use "middleware" option.');
+    log.warning(
+      '"simpleExpressMiddlewares" option is deprecated. Use "middleware" option.'
+    );
     middleware = [...middleware, ...simpleExpressMiddlewares];
   }
   if (middlewares) {
-    log.warning('"middlewares" option is deprecated. Use "middleware" (without "s") option.');
+    log.warning(
+      '"middlewares" option is deprecated. Use "middleware" (without "s") option.'
+    );
     middleware = [...middleware, ...middlewares];
   }
   if (expressMiddlewares) {
-    log.warning('"expressMiddlewares" option is deprecated. Use "expressMiddleware" (without "s") option.');
+    log.warning(
+      '"expressMiddlewares" option is deprecated. Use "expressMiddleware" (without "s") option.'
+    );
     expressMiddleware = [...expressMiddleware, ...expressMiddlewares];
   }
 
@@ -129,63 +143,77 @@ const simpleExpress = async({
   };
 
   // preparePlugins
-  const plugins = rawPlugins.map(plugin => plugin(simpleExpressConfigForPlugins))
+  const plugins = rawPlugins.map((plugin) =>
+    plugin(simpleExpressConfigForPlugins)
+  );
 
   // create stats
   const stats = getStats(port);
 
   // creating express app
   const app = userApp === defaultAppValue ? express() : userApp;
-  const server = userServer === defaultServerValue ? http.createServer(app) : userServer;
+  const server =
+    userServer === defaultServerValue ? http.createServer(app) : userServer;
   app.server = server;
 
   // creating simpleExpress helper utility
-  const simpleExpressHelper = await createSimpleExpressHelper({ routes, routeParams });
+  const simpleExpressHelper = await createSimpleExpressHelper({
+    routes,
+    routeParams,
+  });
 
   // applying default middlewares
   const config = getDefaultConfig(userConfig);
 
   if (config.cors !== false) {
-    stats.set('cors');
+    stats.set("cors");
     app.use(cors(config.cors));
   }
 
   if (config.jsonBodyParser !== false) {
-    stats.set('jsonBodyParser');
+    stats.set("jsonBodyParser");
     app.use(bodyParser.json(config.jsonBodyParser));
   }
 
   if (config.cookieParser !== false) {
-    stats.set('cookieParser');
+    stats.set("cookieParser");
     app.use(cookieParser(config.cookieParser));
   }
 
-  const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins }, simpleExpressHelper);
-  const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins }, simpleExpressHelper);
+  const createHandlerWithParams = createHandler(
+    { additionalParams: routeParams, plugins },
+    simpleExpressHelper
+  );
+  const createErrorHandlerWithParams = createErrorHandler(
+    { additionalParams: routeParams, plugins },
+    simpleExpressHelper
+  );
 
   // applying custom express middlewares
   const expressMiddlewareFlat = _.flattenDeep(expressMiddleware);
-  stats.set('expressMiddleware', expressMiddlewareFlat.length);
-  expressMiddlewareFlat.forEach(middleware => app.use(middleware));
+  stats.set("expressMiddleware", expressMiddlewareFlat.length);
+  expressMiddlewareFlat.forEach((middleware) => app.use(middleware));
 
   // applying middlewares
   const middlewareFlat = _.flattenDeep(middleware);
-  stats.set('middleware', middlewareFlat.length);
-  middlewareFlat.forEach(middleware => {
+  stats.set("middleware", middlewareFlat.length);
+  middlewareFlat.forEach((middleware) => {
     app.use(createHandlerWithParams(middleware));
   });
 
   // applying routes
-  app.use(buildRoutes({
-    app,
-    stats,
-    createHandlerWithParams,
-  })(routes));
+  app.use(
+    buildRoutes({
+      app,
+      stats,
+      createHandlerWithParams,
+    })(routes)
+  );
 
   // applying error handlers
   const errorHandlersFlat = _.flattenDeep(errorHandlers);
-  stats.set('errorHandlers', errorHandlersFlat.length);
-  errorHandlersFlat.forEach(errorHandler => {
+  stats.set("errorHandlers", errorHandlersFlat.length);
+  errorHandlersFlat.forEach((errorHandler) => {
     app.use(createErrorHandlerWithParams(errorHandler));
   });
 
@@ -195,8 +223,12 @@ const simpleExpress = async({
   }
 
   if (port && !app.server.address()) {
-    log(`ERROR: App started but app.server.address() is undefined. It seems that the ${port} port is already used.`);
-    throw new Error(`App started but it doesn't seem to listen on any port. Check if port ${port} is not already used.`);
+    log(
+      `ERROR: App started but app.server.address() is undefined. It seems that the ${port} port is already used.`
+    );
+    throw new Error(
+      `App started but it doesn't seem to listen on any port. Check if port ${port} is not already used.`
+    );
   }
 
   stats.logStartup();
@@ -209,9 +241,10 @@ const simpleExpress = async({
   return { app, server, stats };
 };
 
-export const wrapMiddleware = (...middleware) => _.flattenDeep(middleware).map(el => ({ req, res, next }) => {
-  el(req, res, next);
-});
+export const wrapMiddleware = (...middleware) =>
+  _.flattenDeep(middleware).map((el) => ({ req, res, next }) => {
+    el(req, res, next);
+  });
 
 export { handleError };
 
