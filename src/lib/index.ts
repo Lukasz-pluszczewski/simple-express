@@ -1,5 +1,6 @@
-import http from "http";
-import express from "express";
+import http, { Server as HttpServer } from "http";
+import { Server as HttpsServer } from "https";
+import express, { Handler as ExpressHandler, Application as ExpressApplication } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -8,14 +9,20 @@ import _ from "lodash";
 import log from "./log";
 import getStats from "./stats";
 import buildRoutes from "./buildRoutes";
-import { createHandler, createErrorHandler } from "./createHandler";
+import { createErrorHandler, createHandler } from "./createHandler";
 import propTypesMiddleware from "./propTypesMiddleware";
 import handleError from "./handleError.js";
+import { defaultAppValue, defaultServerValue } from "./constants";
+
+import {
+  RouteParams,
+  Routes,
+  SimpleExpressConfig,
+  SimpleExpressConfigForPlugins,
+  Config,
+} from "./types";
 
 export const checkPropTypes = propTypesMiddleware;
-
-const defaultAppValue = Symbol("defaultAppValue");
-const defaultServerValue = Symbol("defaultServerValue");
 
 export class ValidationError extends Error {
   constructor(errors) {
@@ -24,9 +31,12 @@ export class ValidationError extends Error {
   }
 }
 
+export const ensureArray = <T>(value: T): T extends any[] ? T : T[] =>
+  (Array.isArray(value) ? value : [value]) as T extends any[] ? T : T[];
+
 const getDefaultConfig = (
-  userConfig,
-  defaultConfig = {
+  userConfig: Config,
+  defaultConfig: Config = {
     cors: null,
     jsonBodyParser: null,
     cookieParser: [],
@@ -49,9 +59,11 @@ const getDefaultConfig = (
   };
 };
 
-const createSimpleExpressHelper = ({ routes, routeParams }) => {
+const createSimpleExpressHelper = (
+  { routes, routeParams }: { routes: Routes[], routeParams: RouteParams }
+) => {
   return {
-    runRoute: async (label, method, data) => {
+    runRoute: async (label: string, method: string, data: Record<string, any>) => {
       if (!Array.isArray(routes)) {
         log.warning(
           `Only "array of objects" style routes are supported by runRoute helper`
@@ -85,7 +97,7 @@ const simpleExpress = async ({
   port,
   plugins: rawPlugins = [],
   routes = [],
-  middleware = [],
+  middleware: rawMiddleware = [],
   middlewares, // TODO remove in 3.0.0
   simpleExpressMiddlewares, // TODO remove in 3.0.0
   globalMiddlewares, // TODO remove in 3.0.0
@@ -96,40 +108,41 @@ const simpleExpress = async ({
   routeParams = {},
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-} = {}) => {
+}: SimpleExpressConfig = {}) => {
   if (port) {
     log(`Initializing simpleExpress app on port ${port}...`);
   } else {
     log(`Initializing simpleExpress app (no port)...`);
   }
   // validate config
+  let middleware = ensureArray(rawMiddleware);
   if (globalMiddlewares) {
     log.warning(
       '"globalMiddlewares" option is deprecated. Use "middleware" option.'
     );
-    middleware = [...middleware, ...globalMiddlewares];
+    middleware = [...middleware, ...(ensureArray(globalMiddlewares))];
   }
   if (simpleExpressMiddlewares) {
     log.warning(
       '"simpleExpressMiddlewares" option is deprecated. Use "middleware" option.'
     );
-    middleware = [...middleware, ...simpleExpressMiddlewares];
+    middleware = [...middleware, ...(ensureArray(simpleExpressMiddlewares))];
   }
   if (middlewares) {
     log.warning(
       '"middlewares" option is deprecated. Use "middleware" (without "s") option.'
     );
-    middleware = [...middleware, ...middlewares];
+    middleware = [...middleware, ...(ensureArray(middlewares))];
   }
   if (expressMiddlewares) {
     log.warning(
       '"expressMiddlewares" option is deprecated. Use "expressMiddleware" (without "s") option.'
     );
-    expressMiddleware = [...expressMiddleware, ...expressMiddlewares];
+    expressMiddleware = [...expressMiddleware, ...(ensureArray(expressMiddlewares))];
   }
 
   // simpleExpress config for plugins
-  const simpleExpressConfigForPlugins = {
+  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins = {
     port,
     plugins: rawPlugins,
     routes,
@@ -151,9 +164,10 @@ const simpleExpress = async ({
   const stats = getStats(port);
 
   // creating express app
-  const app = userApp === defaultAppValue ? express() : userApp;
-  const server =
-    userServer === defaultServerValue ? http.createServer(app) : userServer;
+  const app = (userApp === defaultAppValue ? express() : userApp) as
+    ExpressApplication & { server: HttpServer | HttpsServer };
+  const server = (userServer === defaultServerValue ? http.createServer(app) : userServer) as
+    HttpServer | HttpsServer;
   app.server = server;
 
   // creating simpleExpress helper utility
@@ -177,7 +191,7 @@ const simpleExpress = async ({
 
   if (config.cookieParser !== false) {
     stats.set("cookieParser");
-    app.use(cookieParser(config.cookieParser));
+    app.use(cookieParser(...config.cookieParser));
   }
 
   const createHandlerWithParams = createHandler(
@@ -190,7 +204,7 @@ const simpleExpress = async ({
   );
 
   // applying custom express middlewares
-  const expressMiddlewareFlat = _.flattenDeep(expressMiddleware);
+  const expressMiddlewareFlat = _.flattenDeep(expressMiddleware) as ExpressHandler[];
   stats.set("expressMiddleware", expressMiddlewareFlat.length);
   expressMiddlewareFlat.forEach((middleware) => app.use(middleware));
 

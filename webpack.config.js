@@ -6,8 +6,6 @@ const getPackageJson = require('./scripts/getPackageJson');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-
 const {
   version,
   name,
@@ -83,6 +81,12 @@ module.exports = {
       commonjs: 'prop-types',
       amd: 'prop-types'
     },
+    "http": {
+      root: 'Http',
+      commonjs2: 'http',
+      commonjs: 'http',
+      amd: 'http'
+    },
   },
   optimization: {
     minimize: true,
@@ -131,8 +135,7 @@ module.exports = {
     new MiniCssExtractPlugin({
         filename: 'css/index.css'
     }),
-    new webpack.BannerPlugin(banner),
-    new BundleAnalyzerPlugin()
+    new webpack.BannerPlugin(banner)
   ],
   resolve: {
     extensions: ['.ts', '.js', '.json'],

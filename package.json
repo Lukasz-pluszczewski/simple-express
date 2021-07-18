@@ -1,6 +1,6 @@
 {
   "name": "simple-express-framework",
-  "version": "2.4.0-rc.0",
+  "version": "2.4.0-rc.1",
   "main": "build/index.js",
   "description": "Simple micro framework based on Express, allowing you to prototype APIs blazingly quickly",
   "types": "build/types/index.d.ts",
@@ -35,6 +35,10 @@
     "@babel/plugin-transform-typescript": "^7.14.3",
     "@babel/polyfill": "^7.12.1",
     "@babel/preset-env": "^7.14.2",
+    "@types/body-parser": "^1.19.1",
+    "@types/cookie-parser": "^1.4.2",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
     "@types/jest": "^26.0.23",
     "@typescript-eslint/eslint-plugin": "^4.25.0",
     "@typescript-eslint/parser": "^4.24.0",
@@ -65,6 +69,7 @@
     "webpack-dev-server": "4.0.0-beta.3"
   },
   "dependencies": {
+    "@types/lodash": "^4.14.171",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",

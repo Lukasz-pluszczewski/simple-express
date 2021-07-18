@@ -1,11 +1,21 @@
+import { Request, Response, NextFunction } from 'express';
+
 import sendResponse from "./sendResponse";
 import { chainPlugins } from "./pluginUtils";
 import log from "./log";
 
-export const createHandler =
-  ({ additionalParams = {}, plugins }, simpleExpress) =>
-  (handler) =>
-  async (req, res, next) => {
+import { RouteParams, Plugin, SimpleExpressHelper, Handler, HandlerParams, ErrorHandler } from './types';
+
+export const createHandler = (
+  { additionalParams = {}, plugins }: { additionalParams: RouteParams, plugins: Plugin[] },
+  simpleExpress: SimpleExpressHelper
+) => (
+  handler: Handler
+) => async (
+  req: Request & { requestTiming?: number },
+  res: Response,
+  next: NextFunction
+) => {
     let result;
 
     if (!req.requestTiming) {
@@ -26,15 +36,15 @@ export const createHandler =
       originalUrl: req.originalUrl,
       protocol: req.protocol,
       xhr: req.xhr,
-      get: (headerName) => req.get(headerName),
-      getHeader: (headerName) => req.get(headerName),
+      get: req.get,
+      getHeader: req.get,
       locals: res.locals,
       next,
       req,
       res,
       ...additionalParams,
       simpleExpress,
-    });
+    } as HandlerParams);
 
     try {
       result = await handler(handlerParams);
@@ -49,15 +59,22 @@ export const createHandler =
     const mappedResult = await chainPlugins(
       plugins,
       "mapResponse",
-      (previousResult) => !previousResult || previousResult.type === "none"
+      (previousResult: any) => !previousResult || previousResult.type === "none"
     )(result, handlerParams);
     sendResponse(req, res, mappedResult);
   };
 
-export const createErrorHandler =
-  ({ additionalParams = {}, plugins }, simpleExpress) =>
-  (handler) =>
-  async (error, req, res, next) => {
+export const createErrorHandler = (
+  { additionalParams = {}, plugins }: { additionalParams: RouteParams, plugins: Plugin[] },
+  simpleExpress: SimpleExpressHelper
+) => (
+  handler: ErrorHandler
+) => async (
+  error: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
     let result;
 
     const handlerParams = await chainPlugins(
@@ -72,14 +89,14 @@ export const createErrorHandler =
       protocol: req.protocol,
       xhr: req.xhr,
       get: req.get,
-      getHeader: (headerName) => req.get(headerName),
+      getHeader: req.get,
       locals: res.locals,
       next,
       req,
       res,
       ...additionalParams,
       simpleExpress,
-    });
+    } as Omit<HandlerParams, 'params'>);
 
     try {
       result = await handler(error, handlerParams);
