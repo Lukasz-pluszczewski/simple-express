@@ -1,3 +1,4 @@
+import "regenerator-runtime/runtime";
 import http from 'http';
 import express from 'express';
 import cors from 'cors';

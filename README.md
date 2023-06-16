@@ -11,6 +11,9 @@
 Micro-framework that let's you create more readable route structure, use simple async functions as route handlers, with clear error handling and run fully functional express app in seconds.
 
 ## Getting started
+### Requirements
+- Modern version of Node (>18 recommended but will probably work on older versions too)
+
 ### Install the library
 `npm i simple-express-framework`
 
@@ -937,6 +940,10 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+
+### 2.4.0
+- Added typescript typings
+- Updated dependencies
 
 ### 2.3.0
 - Added plugins support

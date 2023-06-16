@@ -1,7 +1,8 @@
 {
   "name": "simple-express-framework",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "main": "build/index.js",
+  "types": "./types/simple-express-framework.d.ts",
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
@@ -25,12 +26,12 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@babel/core": "7.4.3",
+    "@babel/core": "7.22.1",
     "@babel/plugin-proposal-class-properties": "^7.4.0",
     "@babel/preset-env": "^7.4.3",
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.9.0",
-    "@svgr/webpack": "4.2.0",
+    "@svgr/webpack": "^8.0.1",
     "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "10.0.1",
     "babel-jest": "24.7.1",
@@ -69,16 +70,17 @@
     "postcss-safe-parser": "4.0.1",
     "react": "^16.8.6",
     "react-app-polyfill": "^0.2.2",
-    "react-dev-utils": "^8.0.0",
+    "react-dev-utils": "^12.0.1",
     "react-dom": "^16.8.6",
     "resolve": "1.10.0",
     "sass-loader": "7.1.0",
     "style-loader": "0.23.1",
     "supertest": "^4.0.2",
-    "terser-webpack-plugin": "1.2.3",
+    "terser-webpack-plugin": "^1.4.5",
+    "typescript": "^5.1.3",
     "url-loader": "1.1.2",
     "webpack": "4.30.0",
-    "webpack-dev-server": "3.3.1",
+    "webpack-dev-server": "^3.11.3",
     "webpack-manifest-plugin": "2.0.4",
     "workbox-webpack-plugin": "4.2.0"
   },
@@ -98,7 +100,9 @@
     "setupFiles": [
       "react-app-polyfill/jsdom"
     ],
-    "setupFilesAfterEnv": ["jest-extended"],
+    "setupFilesAfterEnv": [
+      "jest-extended"
+    ],
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}",
       "<rootDir>/src/**/?(*.)(spec|test).{js,jsx,ts,tsx}"
@@ -137,12 +141,13 @@
     ]
   },
   "dependencies": {
-    "body-parser": "^1.19.0",
-    "cookie-parser": "^1.4.5",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "debug": "^4.1.1",
-    "express": "^4.17.1",
-    "lodash": "^4.17.11",
-    "prop-types": "^15.7.2"
+    "debug": "^4.3.4",
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "prop-types": "^15.8.1",
+    "regenerator-runtime": "^0.13.11"
   }
 }

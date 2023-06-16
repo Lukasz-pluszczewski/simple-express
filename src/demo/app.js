@@ -1,4 +1,4 @@
-import simpleExpress from '../lib';
+import simpleExpress from '../../build';
 import routes from './routes';
 import { getToken } from './services/authentication';
 import getPostsRepository from './repositories/posts';
