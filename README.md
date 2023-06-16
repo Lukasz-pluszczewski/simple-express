@@ -941,6 +941,9 @@ See the demo app for tests examples.
 
 ## Changelog
 
+### 2.4.1
+- Improved typescript typings (added Promise<void> as possible return from handler)
+
 ### 2.4.0
 - Added typescript typings
 - Updated dependencies

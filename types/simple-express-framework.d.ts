@@ -48,6 +48,7 @@ export type Handler<AdditionalRouteParams extends Record<string, unknown>> = (
   | Promise<ResponseDefinition>
   | Error
   | void
+  | Promise<void>
   | Handler<AdditionalRouteParams>[];
 export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>> = (
   error: Error | any,
@@ -57,6 +58,7 @@ export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>> 
   | Promise<ResponseDefinition>
   | Error
   | void
+  | Promise<void>
   | ErrorHandler<AdditionalRouteParams>[];
 
 export type HttpMethod =  'use' | 'get' | 'post' | 'put' | 'delete' | 'del' | 'options' | 'patch' | 'head' | 'checkout' | 'copy' | 'lock' | 'merge' | 'mkactivity' | 'mkcol' | 'move' | 'm-search' | 'notify' | 'purge' | 'report' | 'search' | 'subscribe' | 'trace' | 'unlock' | 'unsubscribe';

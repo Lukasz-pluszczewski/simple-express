@@ -1,6 +1,6 @@
 {
   "name": "simple-express-framework",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "main": "build/index.js",
   "types": "./types/simple-express-framework.d.ts",
   "scripts": {
