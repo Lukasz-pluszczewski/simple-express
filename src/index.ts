@@ -24,6 +24,7 @@ import {
 export type {
   Routes,
   Handler,
+  ErrorHandler,
   Plugin,
   SimpleExpressConfig,
   SimpleExpressConfigForPlugins,

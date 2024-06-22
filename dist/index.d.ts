@@ -165,4 +165,4 @@ declare const ensureArray: <T>(value: T) => T extends any[] ? T : T[];
 declare const simpleExpress: <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>({ port, plugins: rawPlugins, routes, middleware: rawMiddleware, errorHandlers, expressMiddleware, config: userConfig, routeParams, app: userApp, server: userServer, }?: SimpleExpressConfig<AdditionalRouteParams, TLocals>) => Promise<SimpleExpressResult>;
 declare const wrapMiddleware: (...middleware: (Handler$1 | Handler$1[])[]) => (({ req, res, next }: HandlerParams<any>) => void)[];
 
-export { type Config, type Handler, type HandlerParams, type Plugin, type Routes, type SimpleExpressConfig, type SimpleExpressConfigForPlugins, type SimpleExpressResult, simpleExpress as default, ensureArray, _default as handleError, wrapMiddleware };
+export { type Config, type ErrorHandler, type Handler, type HandlerParams, type Plugin, type Routes, type SimpleExpressConfig, type SimpleExpressConfigForPlugins, type SimpleExpressResult, simpleExpress as default, ensureArray, _default as handleError, wrapMiddleware };
