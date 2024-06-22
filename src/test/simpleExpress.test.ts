@@ -5,6 +5,7 @@ import * as matchers from 'jest-extended';
 import simpleExpress, { wrapMiddleware, handleError } from '../index';
 
 import { routeStyles } from './testData/routeTypes';
+import { ErrorHandler, Routes } from '../types';
 
 
 expect.extend(matchers);
@@ -313,11 +314,11 @@ describe('simpleExpress', () => {
           ['/', {
             get: [
               ({ next, res }) => {
-                res.locals = 'works';
+                res.locals.value = 'works';
                 next();
               },
               ({ res }) => ({
-                body: res.locals,
+                body: res.locals.value,
               })
             ]
           }],
@@ -336,7 +337,7 @@ describe('simpleExpress', () => {
             get: [
               ({ res }) => {
                 res.send('works');
-                return 'i\'m not going to be sent';
+                return 'i\'m not going to be sent' as any;
               },
             ]
           }],
@@ -402,7 +403,7 @@ describe('simpleExpress', () => {
         ],
         routes: [
           ['/foo/bar', {
-            post: ({ locals }) => ({
+            post: ({ locals }: { locals: { result: any} }) => ({
               body: locals.result,
             }),
           }],
@@ -544,7 +545,7 @@ describe('simpleExpress', () => {
                   [
                     expressMiddleware2,
                     expressMiddleware3,
-                  ],
+                  ] as any, // typescript has one level of nesting, for my sanity
                 ]),
                 ({ res }) => ({
                   body: res.locals,
@@ -1040,7 +1041,7 @@ describe('simpleExpress', () => {
         const plugin1 = vi.fn(() => ({ getHandlerParams: getHandlerParams1 }));
         const plugin2 = vi.fn(() => ({ getHandlerParams: getHandlerParams2 }));
 
-        const routes = [
+        const routes: Routes<any, any> = [
           ['/', {
             get: [
               ({ additionalParam }) => ({ body: additionalParam }),
@@ -1111,7 +1112,7 @@ describe('simpleExpress', () => {
         const plugin1 = vi.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams1 }));
         const plugin2 = vi.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams2 }));
 
-        const routes = [
+        const routes: Routes<any, any> = [
           ['/', {
             get: [
               () => new Error('Ups!'),
@@ -1119,7 +1120,7 @@ describe('simpleExpress', () => {
           }],
         ];
 
-        const errorHandlers = [
+        const errorHandlers: ErrorHandler<any, any> = [
           (error, { additionalParam }) => ({ body: additionalParam })
         ];
 
@@ -1231,6 +1232,5 @@ describe('simpleExpress', () => {
         expect(mapResponse2).not.toHaveBeenCalled();
       });
     });
-
   });
 });

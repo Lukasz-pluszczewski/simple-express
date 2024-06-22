@@ -31,7 +31,7 @@ var src_exports = {};
 __export(src_exports, {
   default: () => src_default,
   ensureArray: () => ensureArray,
-  handleError: () => handleError_default,
+  handleError: () => handleErrors_default,
   wrapMiddleware: () => wrapMiddleware
 });
 module.exports = __toCommonJS(src_exports);
@@ -517,7 +517,7 @@ var createErrorHandler = ({ additionalParams = {}, plugins }) => (handler) => as
   sendResponse_default(req, res, mappedResult);
 };
 
-// src/handleError.ts
+// src/handleErrors.ts
 var import_lodash2 = __toESM(require("lodash"));
 var validateErrorClass = (errorClass) => {
   if (errorClass && !import_lodash2.default.isFunction(errorClass)) {
@@ -534,29 +534,36 @@ var validateHandler = (errorHandler) => {
   }
 };
 var getArgs = (args) => {
-  if (args.length === 1 && Array.isArray(args[0])) {
-    return args[0].reduce((accu, el) => {
-      if (!Array.isArray(el)) {
-        accu.push([null, el]);
-      } else if (el.length === 1) {
-        accu.push([null, el[0]]);
-      } else if (Array.isArray(el[0])) {
-        el[0].forEach((errorInstance) => {
-          accu.push([errorInstance, el[1]]);
+  const results = [];
+  if (Array.isArray(args[0]) && args.length === 2 && typeof args[0][0] === "function") {
+    args[0].forEach((errorClass) => {
+      results.push([errorClass, args[1]]);
+    });
+  } else if (Array.isArray(args[0])) {
+    args[0].forEach((tuple) => {
+      if (tuple.length === 1) {
+        results.push([null, tuple[0]]);
+      } else if (!Array.isArray(tuple)) {
+        results.push([null, tuple]);
+      } else if (Array.isArray(tuple[0])) {
+        tuple[0].forEach((errorClass) => {
+          results.push([errorClass, tuple[1]]);
         });
       } else {
-        accu.push(el);
+        results.push([tuple[0], tuple[1]]);
       }
-      return accu;
-    }, []);
+    });
+    if (args[1]) {
+      results.push([null, args[1]]);
+    }
+  } else if (args.length === 1) {
+    results.push([null, args[0]]);
+  } else if (args.length === 2) {
+    results.push([args[0], args[1]]);
+  } else {
+    throw new Error("handleErrors arguments error: expected 1 or 2 arguments");
   }
-  if (args.length === 1) {
-    return [[null, args[0]]];
-  }
-  if (Array.isArray(args[0])) {
-    return args[0].map((errorInstance) => [errorInstance, args[1]]);
-  }
-  return [args];
+  return results;
 };
 var handleError = ([errorClass, errorHandler]) => {
   validateErrorClass(errorClass);
@@ -568,7 +575,7 @@ var handleError = ([errorClass, errorHandler]) => {
     return error;
   };
 };
-var handleError_default = (...args) => {
+var handleErrors_default = (...args) => {
   const errorHandlers = getArgs(args);
   return errorHandlers.map(handleError);
 };

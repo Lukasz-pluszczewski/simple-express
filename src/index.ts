@@ -10,7 +10,7 @@ import { log } from './log';
 import { getStats } from './stats';
 import buildRoutes from './buildRoutes';
 import { createErrorHandler, createHandler } from './handler/createHandler';
-import handleError from './handleError';
+import handleError from './handleErrors';
 import { defaultAppValue, defaultServerValue } from './constants';
 
 import {
@@ -175,8 +175,8 @@ const simpleExpress = async <
   return { app, server, stats };
 };
 
-export const wrapMiddleware = (...middleware: ExpressHandler[]) =>
-  _.flattenDeep(middleware).map((el) => ({ req, res, next }: HandlerParams) => {
+export const wrapMiddleware = (...middleware: (ExpressHandler | ExpressHandler[])[]) =>
+  _.flattenDeep(middleware).map((el) => ({ req, res, next }: HandlerParams<any>) => {
     el(req, res, next);
   });
 

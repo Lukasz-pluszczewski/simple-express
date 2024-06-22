@@ -9,9 +9,9 @@ import { getStats } from './stats';
 export type RequestObject = Request & { requestTiming?: number };
 
 export type Config = {
-  cors: CorsOptions | CorsOptionsDelegate | false,
-  jsonBodyParser: OptionsJson | false,
-  cookieParser: [secret?: string | string[], options?: cookieParser.CookieParseOptions] | false,
+  cors?: CorsOptions | CorsOptionsDelegate | false,
+  jsonBodyParser?: OptionsJson | false,
+  cookieParser?: [secret?: string | string[], options?: cookieParser.CookieParseOptions] | false,
 }
 
 export type HandlerParams<TLocals extends Record<string, unknown> = Record<string, any>> = {
@@ -43,7 +43,7 @@ export type ResponseDefinition = {
   type?: string;
 }
 
-export type Handler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (
+export type Handler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = ((
     handlerParams: HandlerParams<TLocals> & AdditionalRouteParams
   ) =>
     | ResponseDefinition
@@ -52,26 +52,34 @@ export type Handler<AdditionalRouteParams extends Record<string, unknown>, TLoca
     | Promise<Error>
     | void
     | Promise<void>
-    | Promise<void | ResponseDefinition | Error>;
-export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (
+    | Promise<void | ResponseDefinition | Error>)
+  | Handler<AdditionalRouteParams, TLocals>[];
+
+export type SingleErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (
     error: Error | any,
     handlerParams: Omit<HandlerParams<TLocals>, 'params'> & AdditionalRouteParams
   ) =>
-    | ResponseDefinition
-    | Promise<ResponseDefinition>
-    | Error
-    | Promise<Error>
-    | void
-    | Promise<void>
-    | Promise<void | ResponseDefinition | Error>;
+  | ResponseDefinition
+  | Promise<ResponseDefinition>
+  | Error
+  | Promise<Error>
+  | void
+  | Promise<void>
+  | Promise<void | ResponseDefinition | Error>;
+export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
+  | SingleErrorHandler<AdditionalRouteParams, TLocals>
+  | ErrorHandler<AdditionalRouteParams, TLocals>[];
 
 export type HttpMethod =  'use' | 'get' | 'post' | 'put' | 'delete' | 'del' | 'options' | 'patch' | 'head' | 'checkout' | 'copy' | 'lock' | 'merge' | 'mkactivity' | 'mkcol' | 'move' | 'm-search' | 'notify' | 'purge' | 'report' | 'search' | 'subscribe' | 'trace' | 'unlock' | 'unsubscribe';
-export type Handlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = Record<HttpMethod, Handler<AdditionalRouteParams, TLocals>>
+export type Handlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
+  [method in HttpMethod]?: Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[];
+};
 
 export type PathObjectRoutes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
   [path: string]:
     | Handler<AdditionalRouteParams, TLocals>
     | Handlers<AdditionalRouteParams, TLocals>
+    | Handlers<AdditionalRouteParams, TLocals>[]
     | PathObjectRoutes<AdditionalRouteParams, TLocals>
     | PathObjectRoutes<AdditionalRouteParams, TLocals>[]
     | Routes<AdditionalRouteParams, TLocals>;
@@ -79,13 +87,16 @@ export type PathObjectRoutes<AdditionalRouteParams extends Record<string, unknow
 
 export type ObjectRoute<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
   path: string;
-  handlers?: Handlers<AdditionalRouteParams, TLocals>;
+  handlers?:
+    | Handlers<AdditionalRouteParams, TLocals>
+    | Handlers<AdditionalRouteParams, TLocals>[];
   routes?: Routes<AdditionalRouteParams, TLocals>;
 }
 
 export type ArrayOfArraysRest<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
   | Routes<AdditionalRouteParams, TLocals>
   | Handlers<AdditionalRouteParams, TLocals>
+  | Handlers<AdditionalRouteParams, TLocals>[]
   | Handler<AdditionalRouteParams, TLocals>
   | Handler<AdditionalRouteParams, TLocals>[]
   | ArrayOfArrays<AdditionalRouteParams, TLocals>
@@ -95,10 +106,11 @@ export type ArrayOfArrays<AdditionalRouteParams extends Record<string, unknown>,
   [string, ...ArrayOfArraysRest<AdditionalRouteParams, TLocals>[]];
 
 export type Routes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
+  | ObjectRoute<AdditionalRouteParams, TLocals>[]
+  | Routes<AdditionalRouteParams, TLocals>[]
   | ArrayOfArrays<AdditionalRouteParams, TLocals>
-  | PathObjectRoutes<AdditionalRouteParams, TLocals>
   | ObjectRoute<AdditionalRouteParams, TLocals>
-  | Routes<AdditionalRouteParams, TLocals>[];
+  | PathObjectRoutes<AdditionalRouteParams, TLocals>;
 
 export type GetHandlerParams = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(params: HandlerParams<TLocals> & AdditionalRouteParams) => Record<string, any>
 export type GetErrorHandlerParams = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(params: HandlerParams<TLocals> & AdditionalRouteParams) => Record<string, any>

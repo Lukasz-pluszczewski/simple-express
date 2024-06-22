@@ -15,9 +15,9 @@ declare const getStats: (port: any) => {
 };
 
 type Config = {
-    cors: CorsOptions | CorsOptionsDelegate | false;
-    jsonBodyParser: OptionsJson | false;
-    cookieParser: [secret?: string | string[], options?: cookieParser.CookieParseOptions] | false;
+    cors?: CorsOptions | CorsOptionsDelegate | false;
+    jsonBodyParser?: OptionsJson | false;
+    cookieParser?: [secret?: string | string[], options?: cookieParser.CookieParseOptions] | false;
 };
 type HandlerParams<TLocals extends Record<string, unknown> = Record<string, any>> = {
     body: any;
@@ -47,24 +47,27 @@ type ResponseDefinition = {
     headers?: Headers;
     type?: string;
 };
-type Handler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (handlerParams: HandlerParams<TLocals> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>;
-type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (error: Error | any, handlerParams: Omit<HandlerParams<TLocals>, 'params'> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>;
+type Handler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = ((handlerParams: HandlerParams<TLocals> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>) | Handler<AdditionalRouteParams, TLocals>[];
+type SingleErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (error: Error | any, handlerParams: Omit<HandlerParams<TLocals>, 'params'> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>;
+type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = SingleErrorHandler<AdditionalRouteParams, TLocals> | ErrorHandler<AdditionalRouteParams, TLocals>[];
 type HttpMethod = 'use' | 'get' | 'post' | 'put' | 'delete' | 'del' | 'options' | 'patch' | 'head' | 'checkout' | 'copy' | 'lock' | 'merge' | 'mkactivity' | 'mkcol' | 'move' | 'm-search' | 'notify' | 'purge' | 'report' | 'search' | 'subscribe' | 'trace' | 'unlock' | 'unsubscribe';
-type Handlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = Record<HttpMethod, Handler<AdditionalRouteParams, TLocals>>;
+type Handlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
+    [method in HttpMethod]?: Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[];
+};
 type PathObjectRoutes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
-    [path: string]: Handler<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals>[] | Routes<AdditionalRouteParams, TLocals>;
+    [path: string]: Handler<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals>[] | PathObjectRoutes<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals>[] | Routes<AdditionalRouteParams, TLocals>;
 };
 type ObjectRoute<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
     path: string;
-    handlers?: Handlers<AdditionalRouteParams, TLocals>;
+    handlers?: Handlers<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals>[];
     routes?: Routes<AdditionalRouteParams, TLocals>;
 };
-type ArrayOfArraysRest<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = Routes<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[] | ArrayOfArrays<AdditionalRouteParams, TLocals> | ArrayOfArraysRest<AdditionalRouteParams, TLocals>[];
+type ArrayOfArraysRest<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = Routes<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals>[] | Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[] | ArrayOfArrays<AdditionalRouteParams, TLocals> | ArrayOfArraysRest<AdditionalRouteParams, TLocals>[];
 type ArrayOfArrays<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [
     string,
     ...ArrayOfArraysRest<AdditionalRouteParams, TLocals>[]
 ];
-type Routes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = ArrayOfArrays<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals> | ObjectRoute<AdditionalRouteParams, TLocals> | Routes<AdditionalRouteParams, TLocals>[];
+type Routes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = ObjectRoute<AdditionalRouteParams, TLocals>[] | Routes<AdditionalRouteParams, TLocals>[] | ArrayOfArrays<AdditionalRouteParams, TLocals> | ObjectRoute<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals>;
 type GetHandlerParams = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(params: HandlerParams<TLocals> & AdditionalRouteParams) => Record<string, any>;
 type GetErrorHandlerParams = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(params: HandlerParams<TLocals> & AdditionalRouteParams) => Record<string, any>;
 type MapResponse = <AdditionalRouteParams extends Record<string, unknown>>(responseObject: ResponseDefinition, routeParams: AdditionalRouteParams) => Record<string, any>;
@@ -106,14 +109,60 @@ type SimpleExpressResult = {
 interface ErrorClass {
     new (name: string): Error;
 }
-type ErrorHandlerTuple<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [errorClass: ErrorClass | ErrorClass[], errorHandler: ErrorHandler<AdditionalRouteParams, TLocals>];
-type HandlerTuple<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [errorHandler: ErrorHandler<AdditionalRouteParams, TLocals>];
-type HandleErrorList<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [...ErrorHandlerTuple<AdditionalRouteParams, TLocals>, HandlerTuple<AdditionalRouteParams, TLocals> | ErrorHandler<AdditionalRouteParams, TLocals>] | ErrorHandlerTuple<AdditionalRouteParams, TLocals>[];
-type HandleErrorArguments<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = ErrorHandlerTuple<AdditionalRouteParams, TLocals> | HandlerTuple<AdditionalRouteParams, TLocals> | [HandleErrorList<AdditionalRouteParams, TLocals>];
+/**
+ handleErrors(ErrorClass, ErrorHandler)
+ or
+ handleErrors(ErrorClass[], ErrorHandler)
+ */
+type ErrorHandlerTuple<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [
+    errorClass: ErrorClass | ErrorClass[] | undefined | null,
+    errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>
+];
+/**
+ handleErrors(ErrorHandler)
+ */
+type SingleErrorHandlerTuple<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [
+    errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>
+];
+/**
+ handleErrors([
+   [ErrorClass1, ErrorHandler1],
+   [ErrorClass2, ErrorHandler2],
+ ])
+ or
+ handleErrors([
+   [[ErrorClass1a, ErrorClass1b], ErrorHandler1],
+   [ErrorClass2, ErrorHandler2],
+ ],
+ or
+ handleErrors([
+   [ErrorClass1, ErrorHandler1],
+   ErrorHandler2,
+ ],
+ or
+ handleErrors([
+   [ErrorClass1, ErrorHandler1],
+   [ErrorHandler2],
+ ],
+ */
+type MultipleErrorHandlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [
+    (ErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandler<AdditionalRouteParams, TLocals>)[]
+];
+/**
+ handleErrors([
+   [ErrorClass1, ErrorHandler1],
+   [ErrorClass2, ErrorHandler2],
+ ], DefaultErrorHandler)
+ */
+type MultipleErrorHandlersWithDefault<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = [
+    (ErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandler<AdditionalRouteParams, TLocals>)[],
+    SingleErrorHandler<AdditionalRouteParams, TLocals>
+];
+type HandleErrorArguments<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = ErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandlerTuple<AdditionalRouteParams, TLocals> | MultipleErrorHandlers<AdditionalRouteParams, TLocals> | MultipleErrorHandlersWithDefault<AdditionalRouteParams, TLocals>;
 declare const _default: <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(...args: HandleErrorArguments<AdditionalRouteParams, TLocals>) => ((error: Error, handlerParams: Omit<HandlerParams<TLocals>, "params"> & AdditionalRouteParams) => void | ResponseDefinition | Error | Promise<void | ResponseDefinition | Error>)[];
 
 declare const ensureArray: <T>(value: T) => T extends any[] ? T : T[];
 declare const simpleExpress: <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>({ port, plugins: rawPlugins, routes, middleware: rawMiddleware, errorHandlers, expressMiddleware, config: userConfig, routeParams, app: userApp, server: userServer, }?: SimpleExpressConfig<AdditionalRouteParams, TLocals>) => Promise<SimpleExpressResult>;
-declare const wrapMiddleware: (...middleware: Handler$1[]) => (({ req, res, next }: HandlerParams) => void)[];
+declare const wrapMiddleware: (...middleware: (Handler$1 | Handler$1[])[]) => (({ req, res, next }: HandlerParams<any>) => void)[];
 
 export { simpleExpress as default, ensureArray, _default as handleError, wrapMiddleware };

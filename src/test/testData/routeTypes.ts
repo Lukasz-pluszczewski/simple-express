@@ -1,6 +1,6 @@
 import { ArrayOfArrays, ObjectRoute, PathObjectRoutes, Routes } from '../../types';
 
-export const routeStyles: Record<string, Routes> = {
+export const routeStyles: Record<string, Routes<any, any>> = {
   arrayOfObjects: [
     {
       path: '/',
