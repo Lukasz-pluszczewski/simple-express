@@ -14,21 +14,13 @@ import handleError from './handleError';
 import { defaultAppValue, defaultServerValue } from './constants';
 
 import {
-  RouteParams,
-  Routes,
   SimpleExpressConfig,
   SimpleExpressConfigForPlugins,
-  Config, HandlerParams,
+  Config,
+  HandlerParams,
+  SimpleExpressResult,
 } from './types';
 
-
-export class ValidationError extends Error {
-  constructor(errors: any[]) {
-    super();
-    this.errors = errors;
-  }
-  errors: any[]
-}
 
 export const ensureArray = <T>(value: T): T extends any[] ? T : T[] =>
   (Array.isArray(value) ? value : [value]) as T extends any[] ? T : T[];
@@ -59,7 +51,10 @@ const getDefaultConfig = (
 };
 
 
-const simpleExpress = async ({
+const simpleExpress = async <
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>
+>({
   port,
   plugins: rawPlugins = [],
   routes = [],
@@ -67,10 +62,10 @@ const simpleExpress = async ({
   errorHandlers = [],
   expressMiddleware = [],
   config: userConfig,
-  routeParams = {},
+  routeParams = {} as any,
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-}: SimpleExpressConfig = {}) => {
+}: SimpleExpressConfig<AdditionalRouteParams, TLocals> = {}): Promise<SimpleExpressResult> => {
   if (port) {
     log(`Initializing simpleExpress app on port ${port}...`);
   } else {
@@ -80,7 +75,7 @@ const simpleExpress = async ({
   let middleware = ensureArray(rawMiddleware);
 
   // simpleExpress config for plugins
-  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins = {
+  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins<AdditionalRouteParams, TLocals> = {
     port,
     plugins: rawPlugins,
     routes,

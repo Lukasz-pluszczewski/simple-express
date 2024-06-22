@@ -29,7 +29,6 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
-  ValidationError: () => ValidationError,
   default: () => src_default,
   ensureArray: () => ensureArray,
   handleError: () => handleError_default,
@@ -579,13 +578,6 @@ var defaultAppValue = Symbol("defaultAppValue");
 var defaultServerValue = Symbol("defaultServerValue");
 
 // src/index.ts
-var ValidationError = class extends Error {
-  constructor(errors) {
-    super();
-    this.errors = errors;
-  }
-  errors;
-};
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
 var getDefaultConfig = (userConfig, defaultConfig = {
   cors: null,
@@ -702,7 +694,6 @@ var wrapMiddleware = (...middleware) => import_lodash3.default.flattenDeep(middl
 var src_default = simpleExpress;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ValidationError,
   ensureArray,
   handleError,
   wrapMiddleware

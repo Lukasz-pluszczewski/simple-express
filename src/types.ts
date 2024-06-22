@@ -4,8 +4,7 @@ import { OptionsJson } from 'body-parser';
 import { Request, Response, Handler as ExpressHandler, Application, NextFunction } from 'express';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
-
-export type RecursiveArray<T> = Array<T|RecursiveArray<T>>
+import { getStats } from './stats';
 
 export type RequestObject = Request & { requestTiming?: number };
 
@@ -15,22 +14,18 @@ export type Config = {
   cookieParser: [secret?: string | string[], options?: cookieParser.CookieParseOptions] | false,
 }
 
-export type RouteParams = {
-  [paramName: string]: any,
-}
-
-export type HandlerParams = {
-  body: any,
-  query: any,
-  params: any,
-  method: string,
-  originalUrl: string,
-  protocol: string,
-  xhr: boolean,
-  getHeader: Request['get'],
-  get: Request['get'],
-  locals: Record<string, any>,
-  next: NextFunction,
+export type HandlerParams<TLocals extends Record<string, unknown> = Record<string, any>> = {
+  body: any;
+  query: any;
+  params: any;
+  method: string;
+  originalUrl: string;
+  protocol: string;
+  xhr: boolean;
+  getHeader: (x: string) => string;
+  get: (x: string) => string;
+  locals: TLocals;
+  next: (error?: any) => void;
   req: Request & { requestTiming?: number },
   res: Response,
 }
@@ -40,118 +35,109 @@ export type Headers = {
 }
 
 export type ResponseDefinition = {
-  body?: string | Record<string, any> | Buffer,
-  status?: number,
-  method?: string,
-  redirect?: false | string,
-  headers?: Headers,
-  type?: string,
+  body?: string | object | Buffer;
+  status?: number;
+  method?: string;
+  redirect?: false | string;
+  headers?: Headers;
+  type?: string;
 }
 
-export type Handler = (handlerParams: HandlerParams & RouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | void;
-export type ErrorHandler = (error: Error, handlerParams: Omit<HandlerParams & RouteParams, 'params'>) => ResponseDefinition | Promise<ResponseDefinition> | Error | void | ErrorHandler[]
+export type Handler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (
+    handlerParams: HandlerParams<TLocals> & AdditionalRouteParams
+  ) =>
+    | ResponseDefinition
+    | Promise<ResponseDefinition>
+    | Error
+    | Promise<Error>
+    | void
+    | Promise<void>
+    | Promise<void | ResponseDefinition | Error>;
+export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = (
+    error: Error | any,
+    handlerParams: Omit<HandlerParams<TLocals>, 'params'> & AdditionalRouteParams
+  ) =>
+    | ResponseDefinition
+    | Promise<ResponseDefinition>
+    | Error
+    | Promise<Error>
+    | void
+    | Promise<void>
+    | Promise<void | ResponseDefinition | Error>;
 
-export type Handlers = {
-  use?: Handler | Handler[];
+export type HttpMethod =  'use' | 'get' | 'post' | 'put' | 'delete' | 'del' | 'options' | 'patch' | 'head' | 'checkout' | 'copy' | 'lock' | 'merge' | 'mkactivity' | 'mkcol' | 'move' | 'm-search' | 'notify' | 'purge' | 'report' | 'search' | 'subscribe' | 'trace' | 'unlock' | 'unsubscribe';
+export type Handlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = Record<HttpMethod, Handler<AdditionalRouteParams, TLocals>>
 
-  get?: Handler | Handler[];
-  post?: Handler | Handler[];
-  put?: Handler | Handler[];
-  delete?: Handler | Handler[];
-  del?: Handler | Handler[];
-  options?: Handler | Handler[];
-  patch?: Handler | Handler[];
-  head?: Handler | Handler[];
-
-  checkout?: Handler | Handler[];
-  copy?: Handler | Handler[];
-  lock?: Handler | Handler[];
-  merge?: Handler | Handler[];
-  mkactivity?: Handler | Handler[];
-  mkcol?: Handler | Handler[];
-  move?: Handler | Handler[];
-  'm-search'?: Handler | Handler[];
-  notify?: Handler | Handler[];
-  purge?: Handler | Handler[];
-  report?: Handler | Handler[];
-  search?: Handler | Handler[];
-  subscribe?: Handler | Handler[];
-  trace?: Handler | Handler[];
-  unlock?: Handler | Handler[];
-  unsubscribe?: Handler | Handler[];
-}
-
-export type PathObjectRoutes = {
+export type PathObjectRoutes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
   [path: string]:
-    | (Handler | Handlers | PathObjectRoutes | PathObjectRoutes[] | Routes)
-    | PathObjectRoutes[];
-};
-
-export type ObjectRoute = {
-  path: string;
-  handlers?: Handlers;
-  routes?: Routes;
+    | Handler<AdditionalRouteParams, TLocals>
+    | Handlers<AdditionalRouteParams, TLocals>
+    | PathObjectRoutes<AdditionalRouteParams, TLocals>
+    | PathObjectRoutes<AdditionalRouteParams, TLocals>[]
+    | Routes<AdditionalRouteParams, TLocals>;
 }
 
-export type ArrayOfArraysRest =
-  | Routes
-  | Handlers
-  | Handler
-  | Handler[]
-  | ArrayOfArrays
-  | ArrayOfArraysRest[];
+export type ObjectRoute<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
+  path: string;
+  handlers?: Handlers<AdditionalRouteParams, TLocals>;
+  routes?: Routes<AdditionalRouteParams, TLocals>;
+}
 
-export type ArrayOfArrays = [string, ...ArrayOfArraysRest[]];
+export type ArrayOfArraysRest<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
+  | Routes<AdditionalRouteParams, TLocals>
+  | Handlers<AdditionalRouteParams, TLocals>
+  | Handler<AdditionalRouteParams, TLocals>
+  | Handler<AdditionalRouteParams, TLocals>[]
+  | ArrayOfArrays<AdditionalRouteParams, TLocals>
+  | ArrayOfArraysRest<AdditionalRouteParams, TLocals>[];
 
-export type Routes = ArrayOfArrays | PathObjectRoutes | ObjectRoute | Routes[];
+export type ArrayOfArrays<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
+  [string, ...ArrayOfArraysRest<AdditionalRouteParams, TLocals>[]];
 
-export type GetHandlerParams = (params: HandlerParams & RouteParams) => Record<string, any>
-export type GetErrorHandlerParams = (params: HandlerParams & RouteParams) => Record<string, any>
-export type MapResponse = (responseObject: ResponseDefinition, routeParams: RouteParams) => Record<string, any>
-export type Plugin = (config: SimpleExpressConfigForPlugins) => {
+export type Routes<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
+  | ArrayOfArrays<AdditionalRouteParams, TLocals>
+  | PathObjectRoutes<AdditionalRouteParams, TLocals>
+  | ObjectRoute<AdditionalRouteParams, TLocals>
+  | Routes<AdditionalRouteParams, TLocals>[];
+
+export type GetHandlerParams = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(params: HandlerParams<TLocals> & AdditionalRouteParams) => Record<string, any>
+export type GetErrorHandlerParams = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(params: HandlerParams<TLocals> & AdditionalRouteParams) => Record<string, any>
+export type MapResponse = <AdditionalRouteParams extends Record<string, unknown>>(responseObject: ResponseDefinition, routeParams: AdditionalRouteParams) => Record<string, any>
+export type Plugin = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(config: SimpleExpressConfigForPlugins<AdditionalRouteParams, TLocals>) => {
   getHandlerParams?: GetHandlerParams,
   getErrorHandlerParams?: GetErrorHandlerParams,
   mapResponse?: MapResponse,
 };
 
-export type SimpleExpressConfig = {
+export type SimpleExpressConfig<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
   port?: string | number;
-  routes?: Routes;
-  middleware?: Handler | Handler[];
-  middlewares?: Handler | Handler[];
-  globalMiddlewares?: Handler | Handler[];
-  simpleExpressMiddlewares?: Handler | Handler[];
-  errorHandlers?: ErrorHandler | ErrorHandler[];
+  routes?: Routes<AdditionalRouteParams, TLocals>;
+  middleware?: Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[];
+  errorHandlers?: ErrorHandler<AdditionalRouteParams, TLocals> | ErrorHandler<AdditionalRouteParams, TLocals>[];
   expressMiddleware?: ExpressHandler[];
-  expressMiddlewares?: ExpressHandler[];
   config?: Config;
-  routeParams?: RouteParams;
+  routeParams?: AdditionalRouteParams;
   app?: Application | symbol;
   server?: HttpServer | HttpsServer | symbol;
   plugins?: Plugin[],
 }
 
-export type SimpleExpressConfigForPlugins = {
+
+export type SimpleExpressConfigForPlugins<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> = {
   port?: string | number;
-  routes?: Routes;
-  middleware?: Handler | Handler[];
-  errorHandlers?: ErrorHandler | ErrorHandler[];
+  routes?: Routes<AdditionalRouteParams, TLocals>;
+  middleware?: Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[];
+  errorHandlers?: ErrorHandler<AdditionalRouteParams, TLocals> | ErrorHandler<AdditionalRouteParams, TLocals>[];
   expressMiddleware?: ExpressHandler[];
   config?: Config;
-  routeParams?: RouteParams;
+  routeParams?: AdditionalRouteParams;
   app?: Application | symbol;
   server?: HttpServer | HttpsServer | symbol;
   plugins?: Plugin[],
-}
+};
 
 export type SimpleExpressResult = {
   app: Application;
   server: HttpServer | HttpsServer;
+  stats: ReturnType<typeof getStats>;
 }
-
-export type simpleExpress = (simpleExpressConfig: SimpleExpressConfig) => Promise<SimpleExpressResult>
-
-export type SimpleExpressHelper = {
-  runRoute: (label: string, method: string, data: Record<string, any>) => Promise<ResponseDefinition>
-  getRoutes: () => Routes[]
-};
