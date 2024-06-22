@@ -21,6 +21,17 @@ import {
   SimpleExpressResult,
 } from './types';
 
+export type {
+  Routes,
+  Handler,
+  Plugin,
+  SimpleExpressConfig,
+  SimpleExpressConfigForPlugins,
+  Config,
+  HandlerParams,
+  SimpleExpressResult,
+} from './types';
+
 
 export const ensureArray = <T>(value: T): T extends any[] ? T : T[] =>
   (Array.isArray(value) ? value : [value]) as T extends any[] ? T : T[];
