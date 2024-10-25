@@ -15,6 +15,7 @@ declare const getStats: (port: any) => {
     logStartup: () => any;
 };
 
+type Path = string;
 type Config = {
     cors?: CorsOptions | CorsOptionsDelegate | false;
     jsonBodyParser?: OptionsJson | false;
@@ -61,13 +62,13 @@ type PathObjectRoutes<AdditionalRouteParams extends Record<string, unknown> = {}
     [path: string]: Handler<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals>[] | PathObjectRoutes<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals>[] | Routes<AdditionalRouteParams, TLocals>;
 };
 type ObjectRoute<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> = {
-    path: string;
+    path: Path;
     handlers?: Handlers<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals>[];
     routes?: Routes<AdditionalRouteParams, TLocals>;
 };
 type ArrayOfArraysRest<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> = Routes<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals> | Handlers<AdditionalRouteParams, TLocals>[] | Handler<AdditionalRouteParams, TLocals> | Handler<AdditionalRouteParams, TLocals>[] | ArrayOfArrays<AdditionalRouteParams, TLocals> | ArrayOfArraysRest<AdditionalRouteParams, TLocals>[];
 type ArrayOfArrays<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> = [
-    string,
+    Path,
     ...ArrayOfArraysRest<AdditionalRouteParams, TLocals>[]
 ];
 type Routes<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> = ObjectRoute<AdditionalRouteParams, TLocals>[] | Routes<AdditionalRouteParams, TLocals>[] | ArrayOfArrays<AdditionalRouteParams, TLocals> | ObjectRoute<AdditionalRouteParams, TLocals> | PathObjectRoutes<AdditionalRouteParams, TLocals>;

@@ -57,7 +57,7 @@ export const getStats = (port) => {
     }
 
     if (notFoundMessages.length) {
-      log.stats(`  Built-in middlewares enabled but corresponding libraries were not installed: ${notFoundMessages.join(", ")}. To use them, install the corresponding npm packages.`);
+      log.stats(`  Corresponding libraries for built-in middlewares were not installed: ${notFoundMessages.join(", ")}. To enable them, install the corresponding npm packages.`);
     }
   };
 

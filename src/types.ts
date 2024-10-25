@@ -7,6 +7,8 @@ import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import { getStats } from './stats';
 
+export type Path = string;
+
 export type RequestObject = Request & { requestTiming?: number };
 
 export type Config = {
@@ -91,7 +93,7 @@ export type PathObjectRoutes<AdditionalRouteParams extends Record<string, unknow
 }
 
 export type ObjectRoute<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> = {
-  path: string;
+  path: Path;
   handlers?:
     | Handlers<AdditionalRouteParams, TLocals>
     | Handlers<AdditionalRouteParams, TLocals>[];
@@ -108,7 +110,7 @@ export type ArrayOfArraysRest<AdditionalRouteParams extends Record<string, unkno
   | ArrayOfArraysRest<AdditionalRouteParams, TLocals>[];
 
 export type ArrayOfArrays<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> =
-  [string, ...ArrayOfArraysRest<AdditionalRouteParams, TLocals>[]];
+  [Path, ...ArrayOfArraysRest<AdditionalRouteParams, TLocals>[]];
 
 export type Routes<AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}> =
   | ObjectRoute<AdditionalRouteParams, TLocals>[]

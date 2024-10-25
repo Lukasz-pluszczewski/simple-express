@@ -1033,6 +1033,7 @@ See the demo app for tests examples.
 
 ## Changelog
 ### 3.0.0
+- Moved express to peerDependencies and included support for express 5
 - Complete rewrite - now the whole codebase is written in typescript
 - Rewritten build process - now using tsup
 - Types improvements
