@@ -2,6 +2,7 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "noErrorTruncation": true,
+    "moduleResolution": "node",
     "types": ["vitest/globals"]
   },
 }

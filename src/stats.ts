@@ -23,7 +23,7 @@ export const getStats = (port) => {
     stats[category][field].push(data);
   };
 
-  const logDefaultMiddlewares = (statsInstance) => {
+  const logDefaultMiddlewares = (statsInstance: ReturnType<typeof getStats>) => {
     const logMessages = [];
     if (statsInstance.getCounter("cors")) {
       logMessages.push("cors");
@@ -34,9 +34,30 @@ export const getStats = (port) => {
     if (statsInstance.getCounter("cookieParser")) {
       logMessages.push("cookie-parser");
     }
+    if (statsInstance.getCounter("helmet")) {
+      logMessages.push("helmet");
+    }
 
     if (logMessages.length) {
       log.stats(`  Used built-in middlewares: ${logMessages.join(", ")}`);
+    }
+
+    const notFoundMessages = [];
+    if (!statsInstance.getCounter("cors-not-found")) {
+      notFoundMessages.push("cors");
+    }
+    if (!statsInstance.getCounter("jsonBodyParser-not-found")) {
+      notFoundMessages.push("bodyParser.json");
+    }
+    if (!statsInstance.getCounter("cookieParser-not-found")) {
+      notFoundMessages.push("cookie-parser");
+    }
+    if (!statsInstance.getCounter("helmet-not-found")) {
+      notFoundMessages.push("helmet");
+    }
+
+    if (notFoundMessages.length) {
+      log.stats(`  Built-in middlewares enabled but corresponding libraries were not installed: ${notFoundMessages.join(", ")}. To use them, install the corresponding npm packages.`);
     }
   };
 

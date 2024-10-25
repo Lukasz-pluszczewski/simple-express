@@ -5,24 +5,24 @@ import { chainPlugins } from "./pluginUtils";
 import { log } from "../log";
 
 import {
-  RouteParams,
   Plugin,
-  Handler,
   HandlerParams,
-  ErrorHandler,
   RequestObject,
-  ResponseDefinition
+  ResponseDefinition,
+  SingleHandler,
+  SingleErrorHandler,
 } from '../types';
 
-export const createHandler = (
-  { additionalParams = {}, plugins }: { additionalParams: RouteParams, plugins: ReturnType<Plugin>[] }
+export const createHandler = <AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}>(
+  { additionalParams, plugins }: { additionalParams: AdditionalRouteParams, plugins: ReturnType<Plugin>[] }
 ) => (
-  handler: Handler
+  handler: SingleHandler<AdditionalRouteParams, TLocals>
 ) => async (
   req: RequestObject,
   res: Response,
   next: NextFunction
 ) => {
+  // console.log('got request');
     let result;
 
     if (!req.requestTiming) {
@@ -32,7 +32,7 @@ export const createHandler = (
       );
     }
 
-    const handlerParams = await chainPlugins<HandlerParams & RouteParams, any>(
+    const handlerParams = await chainPlugins<HandlerParams & AdditionalRouteParams, any>(
       plugins,
       "getHandlerParams",
     )({
@@ -50,7 +50,7 @@ export const createHandler = (
         req,
         res,
         ...additionalParams,
-      } as HandlerParams
+      } as HandlerParams & AdditionalRouteParams
     );
 
 
@@ -72,10 +72,10 @@ export const createHandler = (
     sendResponse(req, res, mappedResult as any);
   };
 
-export const createErrorHandler = (
-  { additionalParams = {}, plugins }: { additionalParams: RouteParams, plugins: ReturnType<Plugin>[] },
+export const createErrorHandler = <AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}>(
+  { additionalParams, plugins }: { additionalParams: AdditionalRouteParams, plugins: ReturnType<Plugin>[] },
 ) => (
-  handler: ErrorHandler
+  handler: SingleErrorHandler
 ) => async (
   error: Error,
   req: Request,
@@ -84,7 +84,7 @@ export const createErrorHandler = (
 ) => {
     let result;
 
-    const handlerParams = await chainPlugins(
+    const handlerParams = await chainPlugins<Omit<HandlerParams, 'params'> & AdditionalRouteParams, any>(
       plugins,
       "getErrorHandlerParams"
     )({
@@ -102,7 +102,7 @@ export const createErrorHandler = (
       req,
       res,
       ...additionalParams,
-    } as Omit<HandlerParams, 'params'>);
+    } as Omit<HandlerParams, 'params'> & AdditionalRouteParams);
 
     try {
       result = await handler(error, handlerParams as any);

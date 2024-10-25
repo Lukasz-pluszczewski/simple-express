@@ -38,9 +38,6 @@ module.exports = __toCommonJS(src_exports);
 var import_lodash3 = __toESM(require("lodash"));
 var import_http = __toESM(require("http"));
 var import_express2 = __toESM(require("express"));
-var import_cors = __toESM(require("cors"));
-var import_body_parser = __toESM(require("body-parser"));
-var import_cookie_parser = __toESM(require("cookie-parser"));
 
 // src/log.ts
 var import_debug = __toESM(require("debug"));
@@ -75,8 +72,27 @@ var getStats = (port) => {
     if (statsInstance2.getCounter("cookieParser")) {
       logMessages.push("cookie-parser");
     }
+    if (statsInstance2.getCounter("helmet")) {
+      logMessages.push("helmet");
+    }
     if (logMessages.length) {
       log.stats(`  Used built-in middlewares: ${logMessages.join(", ")}`);
+    }
+    const notFoundMessages = [];
+    if (!statsInstance2.getCounter("cors-not-found")) {
+      notFoundMessages.push("cors");
+    }
+    if (!statsInstance2.getCounter("jsonBodyParser-not-found")) {
+      notFoundMessages.push("bodyParser.json");
+    }
+    if (!statsInstance2.getCounter("cookieParser-not-found")) {
+      notFoundMessages.push("cookie-parser");
+    }
+    if (!statsInstance2.getCounter("helmet-not-found")) {
+      notFoundMessages.push("helmet");
+    }
+    if (notFoundMessages.length) {
+      log.stats(`  Built-in middlewares enabled but corresponding libraries were not installed: ${notFoundMessages.join(", ")}. To use them, install the corresponding npm packages.`);
     }
   };
   const statsInstance = {
@@ -436,7 +452,7 @@ var chainPlugins = (plugins, method, breakCondition = () => false) => async (par
 };
 
 // src/handler/createHandler.ts
-var createHandler = ({ additionalParams = {}, plugins }) => (handler) => async (req, res, next) => {
+var createHandler = ({ additionalParams, plugins }) => (handler) => async (req, res, next) => {
   let result;
   if (!req.requestTiming) {
     req.requestTiming = Date.now();
@@ -480,7 +496,7 @@ var createHandler = ({ additionalParams = {}, plugins }) => (handler) => async (
   )(result, handlerParams);
   sendResponse_default(req, res, mappedResult);
 };
-var createErrorHandler = ({ additionalParams = {}, plugins }) => (handler) => async (error, req, res, next) => {
+var createErrorHandler = ({ additionalParams, plugins }) => (handler) => async (error, req, res, next) => {
   let result;
   const handlerParams = await chainPlugins(
     plugins,
@@ -589,20 +605,21 @@ var ensureArray = (value) => Array.isArray(value) ? value : [value];
 var getDefaultConfig = (userConfig, defaultConfig = {
   cors: null,
   jsonBodyParser: null,
-  cookieParser: []
+  cookieParser: [],
+  helmet: null
 }) => {
   if (!userConfig) {
     return defaultConfig;
   }
   const {
-    cors: cors2 = defaultConfig.cors,
+    cors = defaultConfig.cors,
     jsonBodyParser = defaultConfig.jsonBodyParser,
-    cookieParser: cookieParser2 = defaultConfig.cookieParser
+    cookieParser = defaultConfig.cookieParser
   } = userConfig;
   return {
-    cors: cors2,
+    cors,
     jsonBodyParser,
-    cookieParser: cookieParser2
+    cookieParser
   };
 };
 var simpleExpress = async ({
@@ -644,16 +661,40 @@ var simpleExpress = async ({
   app.server = server;
   const config = getDefaultConfig(userConfig);
   if (config.cors !== false) {
-    stats.set("cors");
-    app.use((0, import_cors.default)(config.cors));
+    try {
+      const cors = require("cors");
+      stats.set("cors");
+      app.use(cors(config.cors));
+    } catch (error) {
+      stats.set("cors-not-found");
+    }
   }
   if (config.jsonBodyParser !== false) {
-    stats.set("jsonBodyParser");
-    app.use(import_body_parser.default.json(config.jsonBodyParser));
+    try {
+      const bodyParser = require("body-parser");
+      stats.set("jsonBodyParser");
+      app.use(bodyParser.json(config.jsonBodyParser));
+    } catch (error) {
+      stats.set("jsonBodyParser-not-found");
+    }
   }
   if (config.cookieParser !== false) {
-    stats.set("cookieParser");
-    app.use((0, import_cookie_parser.default)(config.cookieParser[0], config.cookieParser[1]));
+    try {
+      const cookieParser = require("cookie-parser");
+      stats.set("cookieParser");
+      app.use(cookieParser(config.cookieParser[0], config.cookieParser[1]));
+    } catch (error) {
+      stats.set("cookieParser-not-found");
+    }
+  }
+  if (config.helmet !== false) {
+    try {
+      const helmet = require("helmet");
+      stats.set("helmet");
+      app.use(helmet(config.helmet));
+    } catch (error) {
+      stats.set("helmet-not-found");
+    }
   }
   const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins });
   const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins });

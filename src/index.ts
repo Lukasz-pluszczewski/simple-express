@@ -2,9 +2,6 @@ import _ from 'lodash';
 import http, { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import express, { Handler as ExpressHandler, Application as ExpressApplication } from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
 
 import { log } from './log';
 import { getStats } from './stats';
@@ -43,6 +40,7 @@ const getDefaultConfig = (
     cors: null,
     jsonBodyParser: null,
     cookieParser: [],
+    helmet: null,
   }
 ) => {
   if (!userConfig) {
@@ -64,8 +62,8 @@ const getDefaultConfig = (
 
 
 const simpleExpress = async <
-  AdditionalRouteParams extends Record<string, unknown>,
-  TLocals extends Record<string, unknown>
+  AdditionalRouteParams extends Record<string, unknown> = {},
+  TLocals extends Record<string, unknown> = {}
 >({
   port,
   plugins: rawPlugins = [],
@@ -119,18 +117,43 @@ const simpleExpress = async <
   const config = getDefaultConfig(userConfig);
 
   if (config.cors !== false) {
-    stats.set('cors');
-    app.use(cors(config.cors));
+    try {
+      const cors = require('cors');
+      stats.set('cors');
+      app.use(cors(config.cors));
+    } catch (error) {
+      stats.set('cors-not-found');
+    }
   }
 
   if (config.jsonBodyParser !== false) {
-    stats.set('jsonBodyParser');
-    app.use(bodyParser.json(config.jsonBodyParser));
+    try {
+      const bodyParser = require('body-parser');
+      stats.set('jsonBodyParser');
+      app.use(bodyParser.json(config.jsonBodyParser));
+    } catch (error) {
+      stats.set('jsonBodyParser-not-found');
+    }
   }
 
   if (config.cookieParser !== false) {
-    stats.set('cookieParser');
-    app.use(cookieParser(config.cookieParser[0], config.cookieParser[1]));
+    try {
+      const cookieParser = require('cookie-parser');
+      stats.set('cookieParser');
+      app.use(cookieParser(config.cookieParser[0], config.cookieParser[1]));
+    } catch (error) {
+      stats.set('cookieParser-not-found');
+    }
+  }
+
+  if (config.helmet !== false) {
+    try {
+      const helmet = require('helmet');
+      stats.set('helmet');
+      app.use(helmet(config.helmet));
+    } catch (error) {
+      stats.set('helmet-not-found');
+    }
   }
 
   const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins });

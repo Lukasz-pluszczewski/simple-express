@@ -4,8 +4,10 @@ import * as matchers from 'jest-extended';
 
 import simpleExpress, { wrapMiddleware, handleError } from '../index';
 
-import { routeStyles } from './testData/routeTypes';
-import { ErrorHandler, Routes } from '../types';
+import {
+  routeStyles,
+} from './testData/routeTypes';
+import { ErrorHandler, ResponseDefinition, Routes } from '../types';
 
 
 expect.extend(matchers);
@@ -26,8 +28,9 @@ describe('simpleExpress', () => {
 
   it('listens on correct port', async () => {
     const port = getFreePort();
-    const { app } = await simpleExpress({ port });
-    expect(app.server.address().port).toBe(port);
+    const { server } = await simpleExpress({ port });
+    const serverAddress = server.address();
+    expect(typeof serverAddress === 'string' ? undefined : serverAddress.port).toBe(port);
   });
   it('passes routeParams to routes', async () => {
     const foo = 'works';
@@ -287,7 +290,7 @@ describe('simpleExpress', () => {
         .expect({ body: { baq: 1 }, params: { foo: 'baz', bar: 'bam' }, query: { baq: 'test' } });
     });
     it('gets res.locals', async () => {
-      const { app } = await simpleExpress({
+      const { app } = await simpleExpress<{}, { foo: string }>({
         routes: [
           ['/', {
             get: [
@@ -628,6 +631,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works');
 
+      // @ts-ignore
       expect(errorHandler.mock.calls[0][0]).toBe(error);
       expect(errorHandler).toHaveBeenCalledTimes(1);
     });
@@ -655,6 +659,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works');
 
+      // @ts-ignore
       expect(errorHandler.mock.calls[0][0]).toBe(error);
       expect(errorHandler).toHaveBeenCalledTimes(1);
     });
@@ -684,6 +689,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works');
 
+      // @ts-ignore
       expect(errorHandler.mock.calls[0][0]).toBe(error);
       expect(errorHandler).toHaveBeenCalledTimes(1);
     });
@@ -782,7 +788,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2);
       expect(errorHandler2).toHaveBeenCalledTimes(1);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -814,7 +820,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2);
       expect(errorHandler2).toHaveBeenCalledTimes(1);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -856,8 +862,8 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2a);
-      expect(errorHandler2.mock.calls[1][0]).toBe(error2b);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2a);
+      expect(errorHandler2.mock.calls[1][0 as any]).toBe(error2b);
       expect(errorHandler2).toHaveBeenCalledTimes(2);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -901,8 +907,8 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2a);
-      expect(errorHandler2.mock.calls[1][0]).toBe(error2b);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2a);
+      expect(errorHandler2.mock.calls[1][0 as any]).toBe(error2b);
       expect(errorHandler2).toHaveBeenCalledTimes(2);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -932,7 +938,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2);
       expect(errorHandler2).toHaveBeenCalledTimes(1);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -964,7 +970,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2);
       expect(errorHandler2).toHaveBeenCalledTimes(1);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -996,7 +1002,7 @@ describe('simpleExpress', () => {
         .expect(200)
         .expect('works2');
 
-      expect(errorHandler2.mock.calls[0][0]).toBe(error2);
+      expect(errorHandler2.mock.calls[0][0 as any]).toBe(error2);
       expect(errorHandler2).toHaveBeenCalledTimes(1);
       expect(errorHandler1).toHaveBeenCalledTimes(0);
     });
@@ -1011,7 +1017,7 @@ describe('simpleExpress', () => {
         }));
         const plugin = vi.fn(() => ({ getHandlerParams }));
 
-        const routes = [
+        const routes: Routes<{ additionalParam: string }> = [
           ['/', {
             get: [
               ({ additionalParam }) => ({ body: additionalParam }),
@@ -1026,6 +1032,7 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works');
 
+        // @ts-ignore
         expect(plugin.mock.calls[0][0].routes).toEqual(routes);
         expect(plugin).toHaveBeenCalledTimes(1);
       });
@@ -1041,7 +1048,7 @@ describe('simpleExpress', () => {
         const plugin1 = vi.fn(() => ({ getHandlerParams: getHandlerParams1 }));
         const plugin2 = vi.fn(() => ({ getHandlerParams: getHandlerParams2 }));
 
-        const routes: Routes<any, any> = [
+        const routes: Routes<{ additionalParam: string }> = [
           ['/', {
             get: [
               ({ additionalParam }) => ({ body: additionalParam }),
@@ -1062,8 +1069,8 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works2');
 
-        expect(plugin1.mock.calls[0][0].routes).toBe(routes);
-        expect(plugin2.mock.calls[0][0].routes).toBe(routes);
+        expect((plugin1.mock.calls[0][0 as any] as any).routes).toBe(routes);
+        expect((plugin2.mock.calls[0][0 as any] as any).routes).toBe(routes);
         expect(plugin1).toHaveBeenCalledTimes(1);
         expect(plugin2).toHaveBeenCalledTimes(1);
         expect(plugin1).toHaveBeenCalledBefore(plugin2);
@@ -1077,7 +1084,7 @@ describe('simpleExpress', () => {
         }));
         const plugin = vi.fn(() => ({ getErrorHandlerParams }));
 
-        const routes = [
+        const routes: Routes = [
           ['/', {
             get: [
               () => new Error('Ups!'),
@@ -1085,7 +1092,7 @@ describe('simpleExpress', () => {
           }],
         ];
 
-        const errorHandlers = [
+        const errorHandlers: ErrorHandler<{ additionalParam: string }>[] = [
           (error, { additionalParam }) => ({ body: additionalParam })
         ];
 
@@ -1096,8 +1103,8 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works');
 
-        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
-        expect(plugin.mock.calls[0][0].errorHandlers).toEqual(errorHandlers);
+        expect((plugin.mock.calls[0][0 as any] as any).routes).toEqual(routes);
+        expect((plugin.mock.calls[0][0 as any] as any).errorHandlers).toEqual(errorHandlers);
         expect(plugin).toHaveBeenCalledTimes(1);
       });
       it('are triggered in the right order', async () => {
@@ -1112,7 +1119,7 @@ describe('simpleExpress', () => {
         const plugin1 = vi.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams1 }));
         const plugin2 = vi.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams2 }));
 
-        const routes: Routes<any, any> = [
+        const routes: Routes = [
           ['/', {
             get: [
               () => new Error('Ups!'),
@@ -1120,7 +1127,7 @@ describe('simpleExpress', () => {
           }],
         ];
 
-        const errorHandlers: ErrorHandler<any, any> = [
+        const errorHandlers: ErrorHandler<{ additionalParam: string }> = [
           (error, { additionalParam }) => ({ body: additionalParam })
         ];
 
@@ -1138,10 +1145,10 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works2');
 
-        expect(plugin1.mock.calls[0][0].routes).toBe(routes);
-        expect(plugin1.mock.calls[0][0].errorHandlers).toBe(errorHandlers);
-        expect(plugin2.mock.calls[0][0].routes).toBe(routes);
-        expect(plugin2.mock.calls[0][0].errorHandlers).toBe(errorHandlers);
+        expect((plugin1.mock.calls[0][0 as any] as any).routes).toBe(routes);
+        expect((plugin1.mock.calls[0][0 as any] as any).errorHandlers).toBe(errorHandlers);
+        expect((plugin2.mock.calls[0][0 as any] as any).routes).toBe(routes);
+        expect((plugin2.mock.calls[0][0 as any] as any).errorHandlers).toBe(errorHandlers);
         expect(plugin1).toHaveBeenCalledTimes(1);
         expect(plugin2).toHaveBeenCalledTimes(1);
         expect(plugin1).toHaveBeenCalledBefore(plugin2);
@@ -1155,10 +1162,10 @@ describe('simpleExpress', () => {
         }));
         const plugin = vi.fn(() => ({ mapResponse }));
 
-        const routes = [
+        const routes: Routes = [
           ['/', {
             get: [
-              () => ({ alternativeBody: 'works' }),
+              () => ({ alternativeBody: 'works' } as ResponseDefinition),
             ]
           }],
         ];
@@ -1170,7 +1177,7 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works');
 
-        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
+        expect((plugin.mock.calls[0][0 as any] as any).routes).toEqual(routes);
         expect(plugin).toHaveBeenCalledTimes(1);
       });
       it('disables response and sends it manually', async () => {
@@ -1180,10 +1187,10 @@ describe('simpleExpress', () => {
         });
         const plugin = vi.fn(() => ({ mapResponse }));
 
-        const routes = [
+        const routes: Routes = [
           ['/', {
             get: [
-              () => ({ alternativeBody: 'works' }),
+              () => ({ alternativeBody: 'works' } as ResponseDefinition),
             ]
           }],
         ];
@@ -1195,7 +1202,7 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works');
 
-        expect(plugin.mock.calls[0][0].routes).toEqual(routes);
+        expect((plugin.mock.calls[0][0 as any] as any).routes).toEqual(routes);
         expect(plugin).toHaveBeenCalledTimes(1);
       });
       it('stops executing plugins after manual response', async () => {
@@ -1211,10 +1218,10 @@ describe('simpleExpress', () => {
         });
         const plugin2 = vi.fn(() => ({ mapResponse: mapResponse2 }));
 
-        const routes = [
+        const routes: Routes = [
           ['/', {
             get: [
-              () => ({ alternativeBody: 'works' }),
+              () => ({ alternativeBody: 'works' } as ResponseDefinition),
             ]
           }],
         ];
@@ -1226,7 +1233,7 @@ describe('simpleExpress', () => {
           .expect(200)
           .expect('works');
 
-        expect(plugin1.mock.calls[0][0].routes).toEqual(routes);
+        expect((plugin1.mock.calls[0][0 as any] as any).routes).toEqual(routes);
         expect(plugin1).toHaveBeenCalledTimes(1);
 
         expect(mapResponse2).not.toHaveBeenCalled();

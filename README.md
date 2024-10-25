@@ -26,52 +26,56 @@ simpleExpress({
 });
 ```
 
-And that's all! Express server, listening on chosen port, with [reasonable default settings](#config) is up and running in seconds!
+And that's all! Express server, listening on selected port, with [reasonable default settings](#config) is up and running in seconds!
 
 But there's more! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers) and more - everything just works and is nearly infinitely expandable thanks to [plugin](#plugins) support!
 
 ## Table of contents
+
 * [Getting started](#getting-started)
 * [Table of contents](#table-of-contents)
 * [Usage](#usage)
-   * [simpleExpress function](#simpleexpress-function)
-   * [simpleExpress config](#simpleexpress-config)
-   * [Handlers](#handlers)
-      * [Response objects](#response-objects)
-      * [Returning error](#returning-error)
-      * [Examples of handlers:](#examples-of-handlers)
-      * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
-   * [Error Handlers](#error-handlers)
-      * [handleError helper](#handleerror-helper)
-   * [Routes](#routes)
-      * [Array of arrays (recommended)](#array-of-arrays-recommended)
-      * [Array of objects](#array-of-objects)
-      * [Object of objects](#object-of-objects)
-      * [Reserved object keys](#reserved-object-keys)
-   * [Config](#config)
-   * [Global Middlewares](#global-middlewares)
+    * [simpleExpress function](#simpleexpress-function)
+    * [simpleExpress config](#simpleexpress-config)
+    * [Handlers](#handlers)
+        * [Response objects](#response-objects)
+        * [Returning error](#returning-error)
+        * [Examples of handlers:](#examples-of-handlers)
+        * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
+    * [Error Handlers](#error-handlers)
+        * [handleError helper](#handleerror-helper)
+    * [Routes](#routes)
+        * [Array of tuples (recommended)](#array-of-tuples-recommended)
+        * [Array of objects](#array-of-objects)
+        * [Object of objects](#object-of-objects)
+        * [Reserved object keys](#reserved-object-keys)
+    * [Config](#config)
+    * [Global Middlewares](#global-middlewares)
 * [Plugins](#plugins)
-   * [Plugins API](#plugins-api)
+* [Typescript](#typescript)
+    * [Type parameters](#type-parameters)
+    * [mapResponse plugin](#mapresponse-plugin)
+    * [getHandlerParams and getErrorHandlerParams plugins](#gethandlerparams-and-geterrorhandlerparams-plugins)
 * [More usage examples](#more-usage-examples)
-   * [Hello world](#hello-world)
-   * [Simple users CRUD](#simple-users-crud)
-   * [Adding authentication](#adding-authentication)
-   * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
-   * [Error handling](#error-handling)
-   * [Disabling default middlewares](#disabling-default-middlewares)
-   * [Applying express middlewares](#applying-express-middlewares)
-   * [Sending response manually](#sending-response-manually)
-   * [Request validation](#request-validation)
-      * [Built-in prop-types helper](#built-in-prop-types-helper)
-      * [Express-validator](#express-validator)
-   * [Logging](#logging)
-   * [Testing the app](#testing-the-app)
+    * [Hello world](#hello-world)
+    * [Simple users CRUD](#simple-users-crud)
+    * [Adding authentication](#adding-authentication)
+    * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
+    * [Error handling](#error-handling)
+    * [Disabling default middlewares](#disabling-default-middlewares)
+    * [Applying express middlewares](#applying-express-middlewares)
+    * [Sending response manually](#sending-response-manually)
+    * [Request validation](#request-validation)
+        * [Built-in prop-types helper](#built-in-prop-types-helper)
+        * [Express-validator](#express-validator)
+    * [Logging](#logging)
+    * [Testing the app](#testing-the-app)
 * [Development](#development)
 * [Changelog](#changelog)
 
 ## Usage
 
-### SimpleExpress function
+### simpleExpress function
 You run the app by executing simpleExpress function. All options are optional.
 
 ```js
@@ -298,7 +302,7 @@ errorHandlers: [
 
     return error;
   },
-  (error) = {
+  (error) => {
     return {
       status: 500,
       body: 'Ups :('
@@ -321,7 +325,7 @@ errorHandlers: [
       status: 401,
       body: 'Unauthorized',
     })
-  )
+  ),
   (error) => ({
     status: 500,
     body: 'Ups :('
@@ -372,7 +376,7 @@ errorHandlers: handleError([
 ### Routes
 The simpleExpress supports different formats of routes (in first two formats, paths can be either strings or regular expressions):
 
-#### Array of arrays (recommended)
+#### Array of tuples (recommended)
 ```js
 simpleExpress({
   routes: [
@@ -473,7 +477,7 @@ Global middlewares can be added in `middleware` field. It is array of handlers (
 ```js
 simpleExpress({
   port: 8080,
-  middleware
+  middleware,
   ...
 })
 ```
@@ -556,6 +560,96 @@ Each plugin gets what previous returned (response object returned from handler i
 **Returns**
 - **responseObject**: *object* [Response object](#response-objects) passed to the next plugin
 
+## Typescript
+SimpleExpress is written in typescript and most of the code is fully typed. One exception is the plugin system which does not correctly infer the types resulting in applying the plugins. Below are examples of how to handle that until the issue is fixed.
+
+### Type parameters
+While most types are going to be correctly inferred, you can also pass the type parameters for additional route params and res.locals object.
+```ts
+import simpleExpress, { Routes } from 'simple-express-framework';
+
+type AdditionalRouteParams = { foo: string };
+type Locals = { bar: string };
+
+export const router: Routes<AdditionalRouteParams, Locals> = [
+  ['/', {
+    get: [
+      ({ foo, locals }) => ({ body: `${foo} ${locals.bar}` }),
+    ]
+  }],
+];
+
+// when passing routes with correct types, you can omit the generics in simpleExpress function
+simpleExpress({
+  routes: router,
+});
+
+// but you can also pass them explicitly
+simpleExpress<AdditionalRouteParams, Locals>({
+  routes: router,
+});
+```
+
+### mapResponse plugin
+This is the most difficult, and for now, the only way is to just use type assertion:
+```ts
+import { ResponseDefinition, Routes } from 'simple-express-framework';
+
+const mapResponse = response => ({
+  ...response,
+  body: response.alternativeBody,
+});
+const plugin = () => ({ mapResponse });
+
+const routes: Routes = [
+  ['/', {
+    get: [
+      () => ({ alternativeBody: 'works' } as ResponseDefinition),
+    ]
+  }],
+];
+
+const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+```
+
+### getHandlerParams and getErrorHandlerParams plugins
+If you just add new parameters to handlers then you can use type parameter in route like this:
+```ts
+const getHandlerParams = routeParams => ({
+  ...routeParams,
+  additionalParam: 'works',
+});
+const plugin = () => ({ getHandlerParams });
+
+const routes: Routes<{ additionalParam: string }> = [
+  ['/', {
+    get: [
+      ({ additionalParam }) => ({ body: additionalParam }),
+    ]
+  }],
+];
+
+const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+```
+
+In case you remove some parameters from handlers, unfortunately, your routes will not be type-safe:
+```ts
+const getHandlerParams = routeParams => ({
+  theOnlyParam: 'works',
+});
+const plugin = () => ({ getHandlerParams });
+
+const routes: Routes<{ theOnlyParam: string }> = [
+  ['/', {
+    get: [
+      // typescript allows you to use `req` param here although it won't be present at runtime 
+      ({ req, theOnlyParam }) => ({ body: theOnlyParam }),
+    ]
+  }],
+];
+
+const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+```
 
 ## More usage examples
 ### Hello world
@@ -935,6 +1029,11 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+### 3.0.0
+- Complete rewrite - now the whole codebase is written in typescript
+- Rewritten build process - now using tsup
+- Types improvements
+- Added helmet
 
 ### 2.4.1
 - Improved typescript typings (added Promise<void> as possible return from handler)

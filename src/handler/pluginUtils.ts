@@ -4,6 +4,7 @@ import { Plugin } from '../types';
 
 type Method = keyof ReturnType<Plugin>;
 
+// TODO: make plugins typesafe
 export const chainPlugins = <InitialType, ResultType>(
   plugins: ReturnType<Plugin>[],
   method: Method,
@@ -14,7 +15,7 @@ export const chainPlugins = <InitialType, ResultType>(
       plugins,
       async (previousResult: Record<string, any>, plugin, index) => {
         if (plugin[method] && !breakCondition(previousResult)) {
-          return plugin[method](previousResult, ...rest);
+          return (plugin[method] as any)(previousResult, ...rest);
         }
         return previousResult;
       },
