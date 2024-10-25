@@ -43,16 +43,16 @@ export const getStats = (port) => {
     }
 
     const notFoundMessages = [];
-    if (!statsInstance.getCounter("cors-not-found")) {
+    if (statsInstance.getCounter("cors-not-found")) {
       notFoundMessages.push("cors");
     }
-    if (!statsInstance.getCounter("jsonBodyParser-not-found")) {
+    if (statsInstance.getCounter("jsonBodyParser-not-found")) {
       notFoundMessages.push("bodyParser.json");
     }
-    if (!statsInstance.getCounter("cookieParser-not-found")) {
+    if (statsInstance.getCounter("cookieParser-not-found")) {
       notFoundMessages.push("cookie-parser");
     }
-    if (!statsInstance.getCounter("helmet-not-found")) {
+    if (statsInstance.getCounter("helmet-not-found")) {
       notFoundMessages.push("helmet");
     }
 

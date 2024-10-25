@@ -466,11 +466,14 @@ Because object keys can be used as route paths but also as method names (like ge
 If you need to register a route with one of these strings as path, you can use one of the other route formats.
 
 ### Config
-By default, JSON body parser, cors and cookie parser middlewares are configured. You can change their configuration or disable them.
+By default, JSON body parser, cors, cookie parser and helmet middlewares are configured. You can change their configuration or disable them.
 `config` object consist of the following fields:
 - **cors**: *object|false* cors config. If set to `false`, the cors middleware will not by applied.
 - **jsonBodyParser**: *object|false* JSON body parser config. If set to `false` the body parser middleware will not be applied.
 - **cookieParser**: *[secret, options]|false* Arguments for cookie-parser middleware. If set to `false` the cookie parser middleware will not be applied.
+- **helmet**: *object|false* Helmet config. If set to `false` the helmet middleware will not be applied.
+
+*Note: Default middlewares are applied only if corresponding libraries are installed. body-parser is an express dependency so it will be installed with it.*
 
 ### Global Middlewares
 Global middlewares can be added in `middleware` field. It is array of handlers (each handlers looks exactly like route handlers, with the same parameters).

@@ -79,16 +79,16 @@ var getStats = (port) => {
       log.stats(`  Used built-in middlewares: ${logMessages.join(", ")}`);
     }
     const notFoundMessages = [];
-    if (!statsInstance2.getCounter("cors-not-found")) {
+    if (statsInstance2.getCounter("cors-not-found")) {
       notFoundMessages.push("cors");
     }
-    if (!statsInstance2.getCounter("jsonBodyParser-not-found")) {
+    if (statsInstance2.getCounter("jsonBodyParser-not-found")) {
       notFoundMessages.push("bodyParser.json");
     }
-    if (!statsInstance2.getCounter("cookieParser-not-found")) {
+    if (statsInstance2.getCounter("cookieParser-not-found")) {
       notFoundMessages.push("cookie-parser");
     }
-    if (!statsInstance2.getCounter("helmet-not-found")) {
+    if (statsInstance2.getCounter("helmet-not-found")) {
       notFoundMessages.push("helmet");
     }
     if (notFoundMessages.length) {
