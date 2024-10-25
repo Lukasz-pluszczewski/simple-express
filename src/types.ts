@@ -2,9 +2,10 @@ import type { CorsOptions, CorsOptionsDelegate } from 'cors';
 import type { CookieParseOptions } from 'cookie-parser';
 import type { OptionsJson } from 'body-parser';
 import type { HelmetOptions } from 'helmet';
-import { Request, Response, Handler as ExpressHandler, Application } from 'express';
-import { Server as HttpServer } from 'http';
-import { Server as HttpsServer } from 'https';
+import type { AddressInfo } from 'net';
+import type { Request, Response, Handler as ExpressHandler, Application } from 'express';
+import type { Server as HttpServer } from 'http';
+import type { Server as HttpsServer } from 'https';
 import { getStats } from './stats';
 
 export type Path = string;
@@ -159,4 +160,6 @@ export type SimpleExpressResult = {
   app: Application;
   server: HttpServer | HttpsServer;
   stats: ReturnType<typeof getStats>;
+  port: string | number;
+  address: AddressInfo | string | null;
 }

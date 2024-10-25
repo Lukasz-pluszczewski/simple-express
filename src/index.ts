@@ -191,7 +191,9 @@ const simpleExpress = async <
     app.server.listen(typeof port === 'number' ? port : parseInt(port, 10));
   }
 
-  if (port && !app.server.address()) {
+  const serverAddress = app.server.address();
+
+  if (port && !serverAddress) {
     log(
       `ERROR: App started but app.server.address() is undefined. It seems that the ${port} port is already used.`
     );
@@ -207,7 +209,17 @@ const simpleExpress = async <
     log(`App started. Not listening on any port.`);
   }
 
-  return { app, server, stats };
+  const { port: serverPort, address } = (() => {
+    if (!port) {
+      return { port: undefined, address: null };
+    }
+    if (typeof serverAddress === 'string') {
+      return { port: undefined, address: serverAddress };
+    }
+    return { port: serverAddress.port, address: serverAddress };
+  })();
+
+  return { app, server, stats, port: serverPort, address };
 };
 
 export const wrapMiddleware = (...middleware: (ExpressHandler | ExpressHandler[])[]) =>

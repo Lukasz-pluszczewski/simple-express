@@ -8,6 +8,8 @@ Micro-framework that let's you create more readable route structure, use simple 
 ## Getting started
 ### Requirements
 - Modern version of Node (>18 recommended but will probably work on older versions too)
+- Express (ver 5 recommended but ver 4 is still supported)
+- (optional) body-parser, cookie-parser, cors, helmet
 
 ### Install the library
 `npm i simple-express-framework`
@@ -66,8 +68,6 @@ But there's more! Dive in in the [Examples](#more-usage-examples) section to see
     * [Applying express middlewares](#applying-express-middlewares)
     * [Sending response manually](#sending-response-manually)
     * [Request validation](#request-validation)
-        * [Built-in prop-types helper](#built-in-prop-types-helper)
-        * [Express-validator](#express-validator)
     * [Logging](#logging)
     * [Testing the app](#testing-the-app)
 * [Development](#development)
@@ -108,6 +108,13 @@ Simple express accepts the following options:
 - **app**: **object** Custom app to be used (by default new express app is created)
 - **server**: **object** Custom http server to be used (by default new http server is created)
 
+Resolves to an object with the following fields:
+- **app**: *object* Express app
+- **server**: *object* Http server
+- **stats**: *object* SimpleExpress stats object
+- **port**: *number* Port if the app is listening or undefined otherwise
+- **address**: *object|string|null* [Server address](https://nodejs.org/api/net.html#serveraddress)
+
 ### Handlers
 SimpleExpress handlers are similar to express handlers except they accept one argument: object with the following fields:
 - **body**: *any* Request's body (by default, the json parser is enabled)
@@ -125,7 +132,7 @@ SimpleExpress handlers are similar to express handlers except they accept one ar
 - **res**: *object* Express' res object
 
 #### Response objects
-Handlers should return the response object:
+Handlers should return falsy value (to not send any response) or the response object:
 - **status**: *number* (default: 200) Response http status code
 - **body**: *any* Response body (By default weill be sent using [res.send() method](https://expressjs.com/en/api.html#res.send). Can be changed with method field)
 - **headers**: *object* Response headers
@@ -926,53 +933,6 @@ simpleExpress({
 ```
 
 ### Request validation
-#### Built-in prop-types helper
-```js
-import simpleExpress, { ValidationError, checkPropTypes } from 'simple-express';
-
-const { app } = await simpleExpress({
-  port: 8080,
-  routes: [
-    ['/:bam', {
-      post: [
-        checkPropTypes({
-          body: PropTypes.shape({
-            foo: PropTypes.number,
-            bar: PropTypes.number,
-          }),
-          query: {
-            baz: PropTypes.oneOf(['right']),
-          },
-          params: {
-            bam: PropTypes.oneOf(['correct']),
-          },
-          headers: {
-            custom: PropTypes.oneOf(['notwrong']).isRequired,
-          },
-        }),
-        () => ({
-          body: 'works'
-        })
-      ],
-    }],
-  ],
-  errorHandlers: [
-    (error, { next }) => {
-      if (error instanceof ValidationError) {
-        return {
-          status: 400,
-          body: {
-            message: 'Bad request',
-            errors: error.errors,
-          },
-        };
-      }
-      next();
-    },
-  ],
-});
-```
-
 #### Express-validator
 ```js
 import simpleExpress, { wrapMiddleware } from 'simple-express';

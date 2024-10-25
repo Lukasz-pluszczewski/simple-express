@@ -3,6 +3,7 @@ import { CorsOptions, CorsOptionsDelegate } from 'cors';
 import { CookieParseOptions } from 'cookie-parser';
 import { OptionsJson } from 'body-parser';
 import { HelmetOptions } from 'helmet';
+import { AddressInfo } from 'net';
 import { Server } from 'http';
 import { Server as Server$1 } from 'https';
 
@@ -108,6 +109,8 @@ type SimpleExpressResult = {
     app: Application;
     server: Server | Server$1;
     stats: ReturnType<typeof getStats>;
+    port: string | number;
+    address: AddressInfo | string | null;
 };
 
 interface ErrorClass {

@@ -28,9 +28,12 @@ describe('simpleExpress', () => {
 
   it('listens on correct port', async () => {
     const port = getFreePort();
-    const { server } = await simpleExpress({ port });
-    const serverAddress = server.address();
-    expect(typeof serverAddress === 'string' ? undefined : serverAddress.port).toBe(port);
+    const { app, server, port: serverPort, address } = await simpleExpress({ port });
+
+    expect(app).toBeDefined();
+    expect(server).toBeDefined();
+    expect(typeof address === 'string' ? undefined : address.port).toBe(port);
+    expect(serverPort).toBe(port);
   });
   it('passes routeParams to routes', async () => {
     const foo = 'works';

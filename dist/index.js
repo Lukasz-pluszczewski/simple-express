@@ -720,7 +720,8 @@ var simpleExpress = async ({
   if (port) {
     app.server.listen(typeof port === "number" ? port : parseInt(port, 10));
   }
-  if (port && !app.server.address()) {
+  const serverAddress = app.server.address();
+  if (port && !serverAddress) {
     log(
       `ERROR: App started but app.server.address() is undefined. It seems that the ${port} port is already used.`
     );
@@ -734,7 +735,16 @@ var simpleExpress = async ({
   } else {
     log(`App started. Not listening on any port.`);
   }
-  return { app, server, stats };
+  const { port: serverPort, address } = (() => {
+    if (!port) {
+      return { port: void 0, address: null };
+    }
+    if (typeof serverAddress === "string") {
+      return { port: void 0, address: serverAddress };
+    }
+    return { port: serverAddress.port, address: serverAddress };
+  })();
+  return { app, server, stats, port: serverPort, address };
 };
 var wrapMiddleware = (...middleware) => import_lodash3.default.flattenDeep(middleware).map((el) => ({ req, res, next }) => {
   el(req, res, next);
