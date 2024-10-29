@@ -1,10 +1,5 @@
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://vshymanskyy.github.io/StandWithUkraine)
-
 # Simple Express framework
 > Simple micro framework based on Express, allowing you to prototype APIs blazingly quickly
-
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://vshymanskyy.github.io/StandWithUkraine)
-[![Russian Warship Go Fuck Yourself](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/RussianWarship.svg)](https://vshymanskyy.github.io/StandWithUkraine)
 
 ![Express Logo](logo.png)
 
@@ -13,6 +8,8 @@ Micro-framework that let's you create more readable route structure, use simple 
 ## Getting started
 ### Requirements
 - Modern version of Node (>18 recommended but will probably work on older versions too)
+- Express (ver 5 recommended but ver 4 is still supported)
+- (optional) body-parser, cookie-parser, cors, helmet
 
 ### Install the library
 `npm i simple-express-framework`
@@ -31,52 +28,54 @@ simpleExpress({
 });
 ```
 
-And that's all! Express server, listening on chosen port, with [reasonable default settings](#config) is up and running in seconds!
+And that's all! Express server, listening on selected port, with [reasonable default settings](#config) is up and running in seconds!
 
 But there's more! Dive in in the [Examples](#more-usage-examples) section to see the power of [simple and readable route handlers](#examples-of-handlers), [clear error handling](#error-Handlers) and more - everything just works and is nearly infinitely expandable thanks to [plugin](#plugins) support!
 
 ## Table of contents
+
 * [Getting started](#getting-started)
 * [Table of contents](#table-of-contents)
 * [Usage](#usage)
-   * [simpleExpress function](#simpleexpress-function)
-   * [simpleExpress config](#simpleexpress-config)
-   * [Handlers](#handlers)
-      * [Response objects](#response-objects)
-      * [Returning error](#returning-error)
-      * [Examples of handlers:](#examples-of-handlers)
-      * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
-   * [Error Handlers](#error-handlers)
-      * [handleError helper](#handleerror-helper)
-   * [Routes](#routes)
-      * [Array of arrays (recommended)](#array-of-arrays-recommended)
-      * [Array of objects](#array-of-objects)
-      * [Object of objects](#object-of-objects)
-      * [Reserved object keys](#reserved-object-keys)
-   * [Config](#config)
-   * [Global Middlewares](#global-middlewares)
+    * [simpleExpress function](#simpleexpress-function)
+    * [simpleExpress config](#simpleexpress-config)
+    * [Handlers](#handlers)
+        * [Response objects](#response-objects)
+        * [Returning error](#returning-error)
+        * [Examples of handlers:](#examples-of-handlers)
+        * [Multiple handlers (middlewares)](#multiple-handlers-middlewares)
+    * [Error Handlers](#error-handlers)
+        * [handleError helper](#handleerror-helper)
+    * [Routes](#routes)
+        * [Array of tuples (recommended)](#array-of-tuples-recommended)
+        * [Array of objects](#array-of-objects)
+        * [Object of objects](#object-of-objects)
+        * [Reserved object keys](#reserved-object-keys)
+    * [Config](#config)
+    * [Global Middlewares](#global-middlewares)
 * [Plugins](#plugins)
-   * [Plugins API](#plugins-api)
+* [Typescript](#typescript)
+    * [Type parameters](#type-parameters)
+    * [mapResponse plugin](#mapresponse-plugin)
+    * [getHandlerParams and getErrorHandlerParams plugins](#gethandlerparams-and-geterrorhandlerparams-plugins)
 * [More usage examples](#more-usage-examples)
-   * [Hello world](#hello-world)
-   * [Simple users CRUD](#simple-users-crud)
-   * [Adding authentication](#adding-authentication)
-   * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
-   * [Error handling](#error-handling)
-   * [Disabling default middlewares](#disabling-default-middlewares)
-   * [Applying express middlewares](#applying-express-middlewares)
-   * [Sending response manually](#sending-response-manually)
-   * [Request validation](#request-validation)
-      * [Built-in prop-types helper](#built-in-prop-types-helper)
-      * [Express-validator](#express-validator)
-   * [Logging](#logging)
-   * [Testing the app](#testing-the-app)
+    * [Hello world](#hello-world)
+    * [Simple users CRUD](#simple-users-crud)
+    * [Adding authentication](#adding-authentication)
+    * [Adding authentication to one route only](#adding-authentication-to-one-route-only)
+    * [Error handling](#error-handling)
+    * [Disabling default middlewares](#disabling-default-middlewares)
+    * [Applying express middlewares](#applying-express-middlewares)
+    * [Sending response manually](#sending-response-manually)
+    * [Request validation](#request-validation)
+    * [Logging](#logging)
+    * [Testing the app](#testing-the-app)
 * [Development](#development)
 * [Changelog](#changelog)
 
 ## Usage
 
-### SimpleExpress function
+### simpleExpress function
 You run the app by executing simpleExpress function. All options are optional.
 
 ```js
@@ -109,6 +108,13 @@ Simple express accepts the following options:
 - **app**: **object** Custom app to be used (by default new express app is created)
 - **server**: **object** Custom http server to be used (by default new http server is created)
 
+Resolves to an object with the following fields:
+- **app**: *object* Express app
+- **server**: *object* Http server
+- **stats**: *object* SimpleExpress stats object
+- **port**: *number* Port if the app is listening or undefined otherwise
+- **address**: *object|string|null* [Server address](https://nodejs.org/api/net.html#serveraddress)
+
 ### Handlers
 SimpleExpress handlers are similar to express handlers except they accept one argument: object with the following fields:
 - **body**: *any* Request's body (by default, the json parser is enabled)
@@ -126,7 +132,7 @@ SimpleExpress handlers are similar to express handlers except they accept one ar
 - **res**: *object* Express' res object
 
 #### Response objects
-Handlers should return the response object:
+Handlers should return falsy value (to not send any response) or the response object:
 - **status**: *number* (default: 200) Response http status code
 - **body**: *any* Response body (By default weill be sent using [res.send() method](https://expressjs.com/en/api.html#res.send). Can be changed with method field)
 - **headers**: *object* Response headers
@@ -303,7 +309,7 @@ errorHandlers: [
 
     return error;
   },
-  (error) = {
+  (error) => {
     return {
       status: 500,
       body: 'Ups :('
@@ -326,7 +332,7 @@ errorHandlers: [
       status: 401,
       body: 'Unauthorized',
     })
-  )
+  ),
   (error) => ({
     status: 500,
     body: 'Ups :('
@@ -377,7 +383,7 @@ errorHandlers: handleError([
 ### Routes
 The simpleExpress supports different formats of routes (in first two formats, paths can be either strings or regular expressions):
 
-#### Array of arrays (recommended)
+#### Array of tuples (recommended)
 ```js
 simpleExpress({
   routes: [
@@ -467,18 +473,21 @@ Because object keys can be used as route paths but also as method names (like ge
 If you need to register a route with one of these strings as path, you can use one of the other route formats.
 
 ### Config
-By default, JSON body parser, cors and cookie parser middlewares are configured. You can change their configuration or disable them.
+By default, JSON body parser, cors, cookie parser and helmet middlewares are configured. You can change their configuration or disable them.
 `config` object consist of the following fields:
 - **cors**: *object|false* cors config. If set to `false`, the cors middleware will not by applied.
 - **jsonBodyParser**: *object|false* JSON body parser config. If set to `false` the body parser middleware will not be applied.
 - **cookieParser**: *[secret, options]|false* Arguments for cookie-parser middleware. If set to `false` the cookie parser middleware will not be applied.
+- **helmet**: *object|false* Helmet config. If set to `false` the helmet middleware will not be applied.
+
+*Note: Default middlewares are applied only if corresponding libraries are installed. body-parser is an express dependency so it will be installed with it.*
 
 ### Global Middlewares
 Global middlewares can be added in `middleware` field. It is array of handlers (each handlers looks exactly like route handlers, with the same parameters).
 ```js
 simpleExpress({
   port: 8080,
-  middleware
+  middleware,
   ...
 })
 ```
@@ -561,6 +570,96 @@ Each plugin gets what previous returned (response object returned from handler i
 **Returns**
 - **responseObject**: *object* [Response object](#response-objects) passed to the next plugin
 
+## Typescript
+SimpleExpress is written in typescript and most of the code is fully typed. One exception is the plugin system which does not correctly infer the types resulting in applying the plugins. Below are examples of how to handle that until the issue is fixed.
+
+### Type parameters
+While most types are going to be correctly inferred, you can also pass the type parameters for additional route params and res.locals object.
+```ts
+import simpleExpress, { Routes } from 'simple-express-framework';
+
+type AdditionalRouteParams = { foo: string };
+type Locals = { bar: string };
+
+export const router: Routes<AdditionalRouteParams, Locals> = [
+  ['/', {
+    get: [
+      ({ foo, locals }) => ({ body: `${foo} ${locals.bar}` }),
+    ]
+  }],
+];
+
+// when passing routes with correct types, you can omit the generics in simpleExpress function
+simpleExpress({
+  routes: router,
+});
+
+// but you can also pass them explicitly
+simpleExpress<AdditionalRouteParams, Locals>({
+  routes: router,
+});
+```
+
+### mapResponse plugin
+This is the most difficult, and for now, the only way is to just use type assertion:
+```ts
+import { ResponseDefinition, Routes } from 'simple-express-framework';
+
+const mapResponse = response => ({
+  ...response,
+  body: response.alternativeBody,
+});
+const plugin = () => ({ mapResponse });
+
+const routes: Routes = [
+  ['/', {
+    get: [
+      () => ({ alternativeBody: 'works' } as ResponseDefinition),
+    ]
+  }],
+];
+
+const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+```
+
+### getHandlerParams and getErrorHandlerParams plugins
+If you just add new parameters to handlers then you can use type parameter in route like this:
+```ts
+const getHandlerParams = routeParams => ({
+  ...routeParams,
+  additionalParam: 'works',
+});
+const plugin = () => ({ getHandlerParams });
+
+const routes: Routes<{ additionalParam: string }> = [
+  ['/', {
+    get: [
+      ({ additionalParam }) => ({ body: additionalParam }),
+    ]
+  }],
+];
+
+const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+```
+
+In case you remove some parameters from handlers, unfortunately, your routes will not be type-safe:
+```ts
+const getHandlerParams = routeParams => ({
+  theOnlyParam: 'works',
+});
+const plugin = () => ({ getHandlerParams });
+
+const routes: Routes<{ theOnlyParam: string }> = [
+  ['/', {
+    get: [
+      // typescript allows you to use `req` param here although it won't be present at runtime 
+      ({ req, theOnlyParam }) => ({ body: theOnlyParam }),
+    ]
+  }],
+];
+
+const { app } = await simpleExpress({ routes, plugins: [ plugin ] });
+```
 
 ## More usage examples
 ### Hello world
@@ -834,53 +933,6 @@ simpleExpress({
 ```
 
 ### Request validation
-#### Built-in prop-types helper
-```js
-import simpleExpress, { ValidationError, checkPropTypes } from 'simple-express';
-
-const { app } = await simpleExpress({
-  port: 8080,
-  routes: [
-    ['/:bam', {
-      post: [
-        checkPropTypes({
-          body: PropTypes.shape({
-            foo: PropTypes.number,
-            bar: PropTypes.number,
-          }),
-          query: {
-            baz: PropTypes.oneOf(['right']),
-          },
-          params: {
-            bam: PropTypes.oneOf(['correct']),
-          },
-          headers: {
-            custom: PropTypes.oneOf(['notwrong']).isRequired,
-          },
-        }),
-        () => ({
-          body: 'works'
-        })
-      ],
-    }],
-  ],
-  errorHandlers: [
-    (error, { next }) => {
-      if (error instanceof ValidationError) {
-        return {
-          status: 400,
-          body: {
-            message: 'Bad request',
-            errors: error.errors,
-          },
-        };
-      }
-      next();
-    },
-  ],
-});
-```
-
 #### Express-validator
 ```js
 import simpleExpress, { wrapMiddleware } from 'simple-express';
@@ -940,6 +992,12 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+### 3.0.0
+- Moved express to peerDependencies and included support for express 5
+- Complete rewrite - now the whole codebase is written in typescript
+- Rewritten build process - now using tsup
+- Types improvements
+- Added helmet
 
 ### 2.4.1
 - Improved typescript typings (added Promise<void> as possible return from handler)
