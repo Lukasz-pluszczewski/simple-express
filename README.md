@@ -53,6 +53,11 @@ But there's more! Dive in in the [Examples](#more-usage-examples) section to see
         * [Reserved object keys](#reserved-object-keys)
     * [Config](#config)
     * [Global Middlewares](#global-middlewares)
+        * [Context](#context)
+            * [Accessing contexts](#accessing-contexts)
+            * [Context object](#context-object)
+            * [globalContext examples](#globalcontext-examples)
+            * [requestContext examples](#requestcontext-examples)
 * [Plugins](#plugins)
 * [Typescript](#typescript)
     * [Type parameters](#type-parameters)
@@ -107,6 +112,8 @@ Simple express accepts the following options:
 - **routeParams**: *object* Object of additional parameters passed to handlers
 - **app**: **object** Custom app to be used (by default new express app is created)
 - **server**: **object** Custom http server to be used (by default new http server is created)
+- **globalContext**: **object** Global context object with values that are going to be available in all handlers
+- **requestContext**: **function** Function returning request context object with values that are going to be available in all handlers. It receives all the fields that handlers receive except, obviously, both context objects.
 
 Resolves to an object with the following fields:
 - **app**: *object* Express app
@@ -130,6 +137,8 @@ SimpleExpress handlers are similar to express handlers except they accept one ar
 - **next**: *function* Express' next function, triggers next middleware
 - **req**: *object* Express' req object
 - **res**: *object* Express' res object
+- **globalContext**: *object* Global context object with values, provided in simpleExpress config
+- **requestContext**: *object* Request context object with values, created by *requestContext* function provided in simpleExpress config
 
 #### Response objects
 Handlers should return falsy value (to not send any response) or the response object:
@@ -493,6 +502,170 @@ simpleExpress({
 ```
 
 If you need to use express middlewares directly, you can pass them to expressMiddleware array.
+
+### Context
+SimpleExpress allows you to pass two types of contexts to handlers: global and request. Both use asyncLocalStorage under the hood, meaning that most of the time you can access them in any place in your code without needed to pass them as parameters.
+
+**Global context** is available in all handlers if you set the globalContext option in simpleExpress config. It has the same lifetime as the app. The object you provided in globalContext, is shallowly cloned once, and that one object is available (and mutable) in all handlers.
+
+**Request context** is generated for each request and has the same lifetime as the request. requestContext option is a function, that receives all the fields that handlers receive except, obviously, both context objects and should return a plain JS object.
+
+#### Accessing contexts
+Both globalContext and requestContext can be accessed via
+
+1. Route parameter (globalContext and requestContext respectively)
+2. getGlobalContext and getRequestContext helpers (exported from the simple-express-framework package) can be used to access respective contexts anywhere in the code, as long as the call tree includes the handler.
+**!Note:** getGlobalContext and getRequestContext functions will work only if you have only one simpleExpress app running in one Node process. Use other methods if you need to run multiple apps.
+3. getGlobalContext and getRequestContext functions are also included in the returned object from simpleExpress function call. You can save them to some global object and make them available to your handlers or services. **This is strongly discouraged, as it will make your code hard to test and maintain. Use other methods if possible.**
+
+#### Context object
+Each context object has the following shape:
+- **get**: *function* Function returning the value of the context object for the provided key
+- **set**: *function* Function setting the value of the context object for the provided key by mutating the context object
+- **nativeLocalStorage**: *object* native asyncLocalStorage object https://nodejs.org/docs/latest-v22.x/api/async_context.html#class-asynclocalstorage
+- **run**: *function* Function running the provided function in the context object's context (just like asyncLocalStorage.run, but without the need to provide the value)
+
+
+#### globalContext examples
+**Simple example**
+```js
+simpleExpress({
+  port: 8080,
+  globalContext: {
+    foo: 'bar',
+  },
+  routes: [
+    ['/', {
+      get: ({ globalContext }) => {
+        return {
+          body: {
+            foo: globalContext.get('foo'), // bar
+          },
+        };
+      },
+    }],
+  ],
+})
+```
+
+
+**Advanced example**
+```js
+import { simpleExpress, getGlobalContext } from 'simple-express-framework';
+
+const handler = async () => {
+  const context = getGlobalContext();
+  const foo = context.get('foo');
+  context.set('foo', 'bam');
+  return foo;
+}
+
+let getGlobalContext;
+
+simpleExpress({
+  port: 8080,
+  globalContext: {
+    foo: 'bar',
+  },
+  routes: [
+    ['/bar', {
+      get: ({ globalContext }) => {
+        const foo = globalContext.get('foo');
+        globalContext.set('foo', 'baz');
+        return {
+          body: {
+            foo, // bar
+          },
+        };
+      },
+    }],
+    ['/baz', async () => {
+      const foo = await handler();
+      return {
+        body: {
+          foo, // baz
+        },
+      };
+    }],
+    ['/bam', async () => ({
+      body: {
+        foo: getGlobalContext().get('foo'), // bam
+      }
+    })],
+  ],
+}).then(({ port, getGlobalContext: globalContext }) => {
+  getGlobalContext = globalContext;
+});
+```
+
+#### requestContext examples
+**Simple example**
+```js
+simpleExpress({
+  port: 8080,
+  requestContext: ({ req }) => ({
+    foo: 'bar',
+  }),
+  routes: [
+    ['/', {
+      get: () => ({
+        body: {
+          foo: getRequestContext().get('foo'),
+        },
+      }),
+    }],
+  ],
+})
+```
+
+**Advanced example**
+```js
+import { simpleExpress, getRequestContext } from 'simple-express-framework';
+
+const handler = async () => {
+  const context = getRequestContext();
+  const foo = context.get('foo');
+  context.set('foo', 'bam');
+  return foo;
+}
+
+let getRequestContext;
+
+simpleExpress({
+  port: 8080,
+  requestContext: ({ req }) => ({
+    foo: 'bar',
+  }),
+  routes: [
+    ['/bar', {
+      get: ({ requestContext }) => {
+        const foo = requestContext.get('foo');
+        requestContext.set('foo', 'baz');
+        return {
+          body: {
+            foo, // bar
+          },
+        };
+      },
+    }],
+    ['/baz', async () => {
+      const foo = await handler();
+      return {
+        body: {
+          foo, // baz
+        },
+      };
+    }],
+    ['/bam', async () => ({
+      body: {
+        foo: getRequestContext().get('foo'), // bam
+      }
+    })],
+  ],
+}).then(({ port, getRequestContext: requestContext }) => {
+  getRequestContext = requestContext;
+});
+```
 
 ## Plugins
 You can modify the behaviour of simpleExpress with plugins. Each plugin is a factory, that receives simpleExpress config (all parameters passed to simpleExpress function) as parameter, and returns plugin object.
@@ -992,6 +1165,10 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+### 3.1.0
+- Added support for asyncLocalStorage: global and for current request
+- Added getRequestContext and getGlobalContext helpers
+
 ### 3.0.0
 - Moved express to peerDependencies and included support for express 5
 - Complete rewrite - now the whole codebase is written in typescript

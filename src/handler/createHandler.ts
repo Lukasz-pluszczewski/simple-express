@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
-import sendResponse from "./sendResponse";
-import { chainPlugins } from "./pluginUtils";
-import { log } from "../log";
+import sendResponse from './sendResponse';
+import { chainPlugins } from './pluginUtils';
+import { log } from '../log';
 
 import {
   Plugin,
@@ -10,117 +10,155 @@ import {
   RequestObject,
   ResponseDefinition,
   SingleHandler,
-  SingleErrorHandler,
+  SingleErrorHandler, RequestContextConfig, GlobalContextConfig, ContextContainer,
 } from '../types';
+import { RequestContextContainer, runInContext } from './context';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
-export const createHandler = <AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}>(
-  { additionalParams, plugins }: { additionalParams: AdditionalRouteParams, plugins: ReturnType<Plugin>[] }
+export const createHandler = <AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>>(
+  { additionalParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage }: {
+    additionalParams: AdditionalRouteParams,
+    plugins: ReturnType<Plugin<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>>[],
+    requestContextConfig?: RequestContextConfig<TRequestContext, AdditionalRouteParams, TLocals> | false,
+    globalContextContainer?: ContextContainer<TGlobalContext>,
+    requestContextLocalStorage?: AsyncLocalStorage<TRequestContext>,
+  }
 ) => (
-  handler: SingleHandler<AdditionalRouteParams, TLocals>
+  handler: SingleHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>
 ) => async (
   req: RequestObject,
   res: Response,
   next: NextFunction
 ) => {
-  // console.log('got request');
-    let result;
+  const contextParams = {
+    body: req.body,
+    query: req.query,
+    params: req.params,
+    method: req.method,
+    originalUrl: req.originalUrl,
+    protocol: req.protocol,
+    xhr: req.xhr,
+    get: req.get.bind(req),
+    getHeader: req.get.bind(req),
+    locals: res.locals,
+    next,
+    req,
+    res,
+    ...additionalParams,
+  } as HandlerParams<TLocals> & AdditionalRouteParams;
 
-    if (!req.requestTiming) {
-      req.requestTiming = Date.now();
-      log.request(
-        `Request started ${req.requestTiming}ms, ${req.protocol}, ${req.originalUrl}`
-      );
-    }
+  const requestContextContainer = (requestContextConfig === false || requestContextConfig === undefined) ? undefined : RequestContextContainer(requestContextLocalStorage, contextParams, requestContextConfig);
 
-    const handlerParams = await chainPlugins<HandlerParams & AdditionalRouteParams, any>(
-      plugins,
-      "getHandlerParams",
-    )({
-        body: req.body,
-        query: req.query,
-        params: req.params,
-        method: req.method,
-        originalUrl: req.originalUrl,
-        protocol: req.protocol,
-        xhr: req.xhr,
-        get: req.get.bind(req),
-        getHeader: req.get.bind(req),
-        locals: res.locals,
-        next,
-        req,
-        res,
-        ...additionalParams,
-      } as HandlerParams & AdditionalRouteParams
+  if (!req.requestTiming) {
+    req.requestTiming = Date.now();
+    log.request(
+      `Request started ${req.requestTiming}ms, ${req.protocol}, ${req.originalUrl}`
     );
+  }
 
+  const handlerParams = await chainPlugins<HandlerParams<TLocals, TRequestContext, TGlobalContext> & AdditionalRouteParams, any>(
+    plugins,
+    'getHandlerParams',
+  )({
+      ...contextParams,
+      requestContext: requestContextContainer,
+      globalContext: globalContextContainer,
+    } as HandlerParams<TLocals, TRequestContext, TGlobalContext> & AdditionalRouteParams
+  );
 
-    try {
-      result = await handler(handlerParams);
-    } catch (error) {
-      return next(error);
-    }
+  let result;
 
-    if (result instanceof Error) {
-      return next(result);
-    }
+  await runInContext(globalContextContainer, async () => {
+    return runInContext(requestContextContainer, async () => {
+      try {
+        result = await handler(handlerParams);
+      } catch (error) {
+        next(error);
+        return;
+      }
+    });
+  });
 
-    const mappedResult = await chainPlugins(
-      plugins,
-      "mapResponse",
-      (previousResult: any) => !previousResult || previousResult.type === "none",
-    )(result, handlerParams);
-    sendResponse(req, res, mappedResult as any);
-  };
+  if (result instanceof Error) {
+    next(result);
+    return;
+  }
 
-export const createErrorHandler = <AdditionalRouteParams extends Record<string, unknown> = {}, TLocals extends Record<string, unknown> = {}>(
-  { additionalParams, plugins }: { additionalParams: AdditionalRouteParams, plugins: ReturnType<Plugin>[] },
+  const mappedResult = await chainPlugins(
+    plugins,
+    'mapResponse',
+    (previousResult: any) => !previousResult || previousResult.type === 'none',
+  )(result, handlerParams);
+  sendResponse(req, res, mappedResult as any);
+};
+
+export const createErrorHandler = <AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>>(
+  { additionalParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage }: {
+    additionalParams: AdditionalRouteParams,
+    plugins: ReturnType<Plugin<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>>[],
+    requestContextConfig?: RequestContextConfig<TRequestContext, AdditionalRouteParams, TLocals> | false,
+    globalContextContainer?: ContextContainer<TGlobalContext>,
+    requestContextLocalStorage?: AsyncLocalStorage<TRequestContext>,
+  }
 ) => (
-  handler: SingleErrorHandler
+  handler: SingleErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>
 ) => async (
   error: Error,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-    let result;
+  let result;
 
-    const handlerParams = await chainPlugins<Omit<HandlerParams, 'params'> & AdditionalRouteParams, any>(
-      plugins,
-      "getErrorHandlerParams"
-    )({
-      body: req.body,
-      query: req.query,
-      // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
-      method: req.method,
-      originalUrl: req.originalUrl,
-      protocol: req.protocol,
-      xhr: req.xhr,
-      get: req.get,
-      getHeader: req.get,
-      locals: res.locals,
-      next,
-      req,
-      res,
-      ...additionalParams,
-    } as Omit<HandlerParams, 'params'> & AdditionalRouteParams);
+  const contextParams = {
+    body: req.body,
+    query: req.query,
+    // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
+    method: req.method,
+    originalUrl: req.originalUrl,
+    protocol: req.protocol,
+    xhr: req.xhr,
+    get: req.get.bind(req),
+    getHeader: req.get.bind(req),
+    locals: res.locals,
+    next,
+    req,
+    res,
+    ...additionalParams,
+  } as HandlerParams<TLocals> & AdditionalRouteParams;
 
-    try {
-      result = await handler(error, handlerParams as any);
-    } catch (error) {
-      return next(error);
-    }
+  const requestContextContainer = ((requestContextConfig === false || requestContextConfig === undefined) ? undefined : RequestContextContainer(requestContextLocalStorage, contextParams, requestContextConfig)) as TRequestContext extends false ? TRequestContext extends false ? never : never : ContextContainer<TRequestContext>;
 
-    if (result instanceof Error) {
-      return next(result);
-    }
+  const handlerParams = await chainPlugins<Omit<HandlerParams<TLocals, TRequestContext, TGlobalContext>, 'params'> & AdditionalRouteParams, any>(
+    plugins,
+    'getErrorHandlerParams'
+  )({
+    ...contextParams,
+    requestContext: requestContextContainer,
+    globalContext: globalContextContainer as TGlobalContext extends false ? TGlobalContext extends false ? never : never : ContextContainer<TGlobalContext>,
+  } as Omit<HandlerParams<TLocals, TRequestContext, TGlobalContext>, 'params'> & AdditionalRouteParams);
 
-    const mappedResult = await chainPlugins(
-      plugins,
-      "mapResponse",
-      (previousResult: ResponseDefinition) => !previousResult || previousResult.type === "none"
-    )(result, handlerParams);
-    sendResponse(req, res, mappedResult as any);
-  };
+  await runInContext(globalContextContainer, async () => {
+    return runInContext(requestContextContainer, async () => {
+      try {
+        result = await handler(error, handlerParams as any);
+      } catch (error) {
+        return next(error);
+      }
+    });
+  });
+
+  if (result instanceof Error) {
+    return next(result);
+  }
+
+  const mappedResult = await chainPlugins(
+    plugins,
+    'mapResponse',
+    (previousResult: ResponseDefinition) => !previousResult || previousResult.type === 'none'
+  )(result, handlerParams);
+  sendResponse(req, res, mappedResult as any);
+};
 
 export default {
   createErrorHandler,

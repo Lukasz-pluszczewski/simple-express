@@ -17,6 +17,8 @@ import {
   HandlerParams,
   SimpleExpressResult,
 } from './types';
+import { createGetGlobalContext, createGetRequestContext, GlobalContextContainer } from './handler/context';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export type {
   Routes,
@@ -60,13 +62,19 @@ const getDefaultConfig = (
   };
 };
 
+let getRequestContext;
+let getGlobalContext;
 
 const simpleExpress = async <
-  AdditionalRouteParams extends Record<string, unknown> = {},
-  TLocals extends Record<string, unknown> = {}
+  AdditionalRouteParams extends Record<string, unknown> = Record<string, never>,
+  TLocals extends Record<string, unknown> = Record<string, never>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>
 >({
   port,
   plugins: rawPlugins = [],
+  requestContext: requestContextConfig,
+  globalContext: globalContextConfig,
   routes = [],
   middleware: rawMiddleware = [],
   errorHandlers = [],
@@ -75,7 +83,7 @@ const simpleExpress = async <
   routeParams = {} as any,
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-}: SimpleExpressConfig<AdditionalRouteParams, TLocals> = {}): Promise<SimpleExpressResult> => {
+}: SimpleExpressConfig<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext> = {}): Promise<SimpleExpressResult<TRequestContext, TGlobalContext>> => {
   if (port) {
     log(`Initializing simpleExpress app on port ${port}...`);
   } else {
@@ -85,7 +93,7 @@ const simpleExpress = async <
   let middleware = ensureArray(rawMiddleware);
 
   // simpleExpress config for plugins
-  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins<AdditionalRouteParams, TLocals> = {
+  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext> = {
     port,
     plugins: rawPlugins,
     routes,
@@ -156,8 +164,16 @@ const simpleExpress = async <
     }
   }
 
-  const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins });
-  const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins });
+  const requestContextLocalStorage = new AsyncLocalStorage<TRequestContext>();
+  const globalContextLocalStorage = new AsyncLocalStorage<TGlobalContext>();
+
+  getRequestContext = createGetRequestContext(requestContextLocalStorage);
+  getGlobalContext = createGetGlobalContext(globalContextLocalStorage);
+
+  const globalContextContainer = (globalContextConfig === false || globalContextConfig === undefined) ? undefined : GlobalContextContainer(globalContextLocalStorage, { ...globalContextConfig });
+
+  const createHandlerWithParams = createHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
+  const createErrorHandlerWithParams = createErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
 
   // applying custom express middlewares
   const expressMiddlewareFlat = _.flattenDeep(expressMiddleware) as ExpressHandler[];
@@ -219,7 +235,7 @@ const simpleExpress = async <
     return { port: serverAddress.port, address: serverAddress };
   })();
 
-  return { app, server, stats, port: serverPort, address };
+  return { app, server, stats, port: serverPort, address, getRequestContext, getGlobalContext };
 };
 
 export const wrapMiddleware = (...middleware: (ExpressHandler | ExpressHandler[])[]) =>
@@ -227,6 +243,6 @@ export const wrapMiddleware = (...middleware: (ExpressHandler | ExpressHandler[]
     el(req, res, next);
   });
 
-export { handleError };
+export { handleError, getRequestContext, getGlobalContext };
 
 export default simpleExpress;

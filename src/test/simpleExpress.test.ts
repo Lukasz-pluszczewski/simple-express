@@ -2,7 +2,7 @@ import request from 'supertest';
 import freePort from 'find-free-port';
 import * as matchers from 'jest-extended';
 
-import simpleExpress, { wrapMiddleware, handleError } from '../index';
+import simpleExpress, { wrapMiddleware, handleError, getRequestContext, getGlobalContext } from '../index';
 
 import {
   routeStyles,
@@ -1087,7 +1087,7 @@ describe('simpleExpress', () => {
         }));
         const plugin = vi.fn(() => ({ getErrorHandlerParams }));
 
-        const routes: Routes = [
+        const routes: Routes<{ additionalParam: string }> = [
           ['/', {
             get: [
               () => new Error('Ups!'),
@@ -1122,7 +1122,7 @@ describe('simpleExpress', () => {
         const plugin1 = vi.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams1 }));
         const plugin2 = vi.fn(() => ({ getErrorHandlerParams: getErrorHandlerParams2 }));
 
-        const routes: Routes = [
+        const routes: Routes<{ additionalParam: string }> = [
           ['/', {
             get: [
               () => new Error('Ups!'),
@@ -1241,6 +1241,169 @@ describe('simpleExpress', () => {
 
         expect(mapResponse2).not.toHaveBeenCalled();
       });
+    });
+  });
+  describe('requestContext', () => {
+    it('adds request context to route params', async () => {
+      const { app } = await simpleExpress({
+        requestContext: ({ req }) => ({
+          method: req.method,
+          originalUrl: req.originalUrl,
+        }),
+        routes: [
+          ['/foo', {
+            get: [
+              ({ requestContext }) => ({ body: { request: `${requestContext.get('method')} ${requestContext.get('originalUrl')}` } }),
+            ]
+          }],
+        ],
+      });
+
+      await request(app)
+        .get('/foo')
+        .expect(200)
+        .expect({ request: 'GET /foo' });
+    });
+    it('adds request context to error handler params', async () => {
+      const { app } = await simpleExpress({
+        requestContext: ({ req }) => ({
+          method: req.method,
+          originalUrl: req.originalUrl,
+        }),
+        routes: [
+          ['/foo', {
+            post: [
+              () => new Error('Ups!'),
+            ]
+          }],
+        ],
+        errorHandlers: [
+          (error, { requestContext }) => ({ body: { request: `${requestContext.get('method')} ${requestContext.get('originalUrl')}`, error: error.message }, status: 500 }),
+        ],
+      });
+
+      await request(app)
+        .post('/foo')
+        .expect(500)
+        .expect({ request: 'POST /foo', error: 'Ups!' });
+    });
+    it('creates asyncContext that can be retrieved using getRequestContext', async () => {
+      const handler = async () => {
+        const context = getRequestContext();
+        const method = context.get('method');
+        const originalUrl = context.get('originalUrl');
+        return { method, originalUrl };
+      }
+
+      const { app } = await simpleExpress({
+        requestContext: ({ req }) => ({
+          method: req.method,
+          originalUrl: req.originalUrl,
+        }),
+        routes: [
+          ['/foo', {
+            get: [
+              async () => {
+                const { method, originalUrl } = await handler();
+                return { body: { request: `${method} ${originalUrl}` } };
+              },
+            ]
+          }],
+        ],
+      });
+
+      await request(app)
+        .get('/foo')
+        .expect(200)
+        .expect({ request: 'GET /foo' });
+    });
+  });
+  describe('globalContext', () => {
+    it('adds global context to route params', async () => {
+      const { app } = await simpleExpress({
+        globalContext: {
+          foo: 'bar',
+        },
+        routes: [
+          ['/', {
+            get: [
+              ({ globalContext }) => ({ body: { foo: globalContext.get('foo') } }),
+            ]
+          }],
+        ],
+      });
+
+      await request(app)
+        .get('/')
+        .expect(200)
+        .expect({ foo: 'bar' });
+    });
+    it('adds global context to error handler params', async () => {
+      const { app } = await simpleExpress({
+        globalContext: {
+          foo: 'bar',
+        },
+        routes: [
+          ['/', {
+            get: [
+              () => new Error('Ups!'),
+            ]
+          }],
+        ],
+        errorHandlers: [
+          (error, { globalContext }) => ({ body: { foo: globalContext.get('foo') }, status: 500 }),
+        ],
+      });
+
+      await request(app)
+        .get('/')
+        .expect(500)
+        .expect({ foo: 'bar' });
+    });
+    it('creates asyncContext that can be retrieved using getGlobalContext', async () => {
+      const handler1 = async () => {
+        const context = getGlobalContext();
+        const foo = context.get('foo');
+        context.set('foo', 'baz');
+        return { foo };
+      }
+      const handler2 = async () => {
+        const context = getGlobalContext();
+        return { foo: context.get('foo') };
+      }
+
+      const { app } = await simpleExpress({
+        globalContext: {
+          foo: 'bar',
+        },
+        routes: [
+          ['/foo1', {
+            get: [
+              async () => {
+                const { foo } = await handler1();
+                return { body: { foo } };
+              },
+            ]
+          }],
+          ['/foo2', {
+            get: [
+              async () => {
+                const { foo } = await handler2();
+                return { body: { foo } };
+              },
+            ]
+          }],
+        ],
+      });
+
+      await request(app)
+        .get('/foo1')
+        .expect(200)
+        .expect({ foo: 'bar' });
+      await request(app)
+        .get('/foo2')
+        .expect(200)
+        .expect({ foo: 'baz' });
     });
   });
 });
