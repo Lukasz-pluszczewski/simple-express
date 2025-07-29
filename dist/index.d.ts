@@ -1,4 +1,4 @@
-import { Request, Response, Handler as Handler$1, Application } from 'express';
+import { Request, Response, Handler as Handler$1, Express } from 'express';
 import { CorsOptions, CorsOptionsDelegate } from 'cors';
 import { CookieParseOptions } from 'cookie-parser';
 import { OptionsJson } from 'body-parser';
@@ -105,7 +105,7 @@ type SimpleExpressConfig<AdditionalRouteParams extends Record<string, unknown> =
     expressMiddleware?: Handler$1[];
     config?: Config;
     routeParams?: AdditionalRouteParams;
-    app?: Application | symbol;
+    app?: Express | symbol;
     server?: Server | Server$1 | symbol;
     plugins?: Plugin<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[];
     requestContext?: RequestContextConfig<TRequestContext, AdditionalRouteParams, TLocals> | false;
@@ -119,14 +119,14 @@ type SimpleExpressConfigForPlugins<AdditionalRouteParams extends Record<string, 
     expressMiddleware?: Handler$1[];
     config?: Config;
     routeParams?: AdditionalRouteParams;
-    app?: Application | symbol;
+    app?: Express | symbol;
     server?: Server | Server$1 | symbol;
     plugins?: Plugin<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[];
     requestContext?: RequestContextConfig<TRequestContext, AdditionalRouteParams, TLocals> | false;
     globalContext?: GlobalContextConfig<TGlobalContext> | false;
 };
 type SimpleExpressResult<TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = {
-    app: Application;
+    app: Express;
     server: Server | Server$1;
     stats: ReturnType<typeof getStats>;
     port: string | number;

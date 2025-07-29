@@ -1165,6 +1165,9 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+### 3.1.1
+- Fixed incorrect Express app typings
+
 ### 3.1.0
 - Added support for asyncLocalStorage: global and for current request
 - Added getRequestContext and getGlobalContext helpers

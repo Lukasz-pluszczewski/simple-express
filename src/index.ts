@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import http, { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
-import express, { Handler as ExpressHandler, Application as ExpressApplication } from 'express';
+import express, { Handler as ExpressHandler, Express } from 'express';
 
 import { log } from './log';
 import { getStats } from './stats';
@@ -116,7 +116,7 @@ const simpleExpress = async <
 
   // creating express app
   const app = (userApp === defaultAppValue ? express() : userApp) as
-    ExpressApplication & { server: HttpServer | HttpsServer };
+    Express & { server: HttpServer | HttpsServer };
   const server = (userServer === defaultServerValue ? http.createServer(app) : userServer) as
     HttpServer | HttpsServer;
   app.server = server;

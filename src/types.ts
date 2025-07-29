@@ -3,7 +3,7 @@ import type { CookieParseOptions } from 'cookie-parser';
 import type { OptionsJson } from 'body-parser';
 import type { HelmetOptions } from 'helmet';
 import type { AddressInfo } from 'net';
-import type { Request, Response, Handler as ExpressHandler, Application } from 'express';
+import type { Request, Response, Handler as ExpressHandler, Express } from 'express';
 import type { Server as HttpServer } from 'http';
 import type { Server as HttpsServer } from 'https';
 import { getStats } from './stats';
@@ -156,7 +156,7 @@ export type SimpleExpressConfig<AdditionalRouteParams extends Record<string, unk
   expressMiddleware?: ExpressHandler[];
   config?: Config;
   routeParams?: AdditionalRouteParams;
-  app?: Application | symbol;
+  app?: Express | symbol;
   server?: HttpServer | HttpsServer | symbol;
   plugins?: Plugin<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[],
   requestContext?: RequestContextConfig<TRequestContext, AdditionalRouteParams, TLocals> | false;
@@ -172,7 +172,7 @@ export type SimpleExpressConfigForPlugins<AdditionalRouteParams extends Record<s
   expressMiddleware?: ExpressHandler[];
   config?: Config;
   routeParams?: AdditionalRouteParams;
-  app?: Application | symbol;
+  app?: Express | symbol;
   server?: HttpServer | HttpsServer | symbol;
   plugins?: Plugin<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[],
   requestContext?: RequestContextConfig<TRequestContext, AdditionalRouteParams, TLocals> | false;
@@ -180,7 +180,7 @@ export type SimpleExpressConfigForPlugins<AdditionalRouteParams extends Record<s
 };
 
 export type SimpleExpressResult<TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = {
-  app: Application;
+  app: Express;
   server: HttpServer | HttpsServer;
   stats: ReturnType<typeof getStats>;
   port: string | number;
