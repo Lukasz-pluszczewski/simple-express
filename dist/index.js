@@ -31,6 +31,8 @@ var src_exports = {};
 __export(src_exports, {
   default: () => src_default,
   ensureArray: () => ensureArray,
+  getGlobalContext: () => getGlobalContext,
+  getRequestContext: () => getRequestContext,
   handleError: () => handleErrors_default,
   wrapMiddleware: () => wrapMiddleware
 });
@@ -451,9 +453,101 @@ var chainPlugins = (plugins, method, breakCondition = () => false) => async (par
   return lastResult;
 };
 
+// src/handler/context.ts
+var createContextContainer = (asyncLocalStorage, initialData) => {
+  return {
+    get: (key) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return void 0;
+      }
+      return store[key] ?? void 0;
+    },
+    set: (key, value) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return;
+      }
+      return store[key] = value;
+    },
+    nativeLocalStorage: asyncLocalStorage,
+    run: async (fn, ...params) => {
+      await asyncLocalStorage.run(initialData, () => {
+        return fn(...params);
+      });
+    }
+  };
+};
+var RequestContextContainer = (asyncLocalStorage, handlerParams, initialDataFactory) => {
+  return createContextContainer(asyncLocalStorage, initialDataFactory(handlerParams));
+};
+var GlobalContextContainer = (asyncLocalStorage, initialData) => {
+  return createContextContainer(asyncLocalStorage, initialData);
+};
+var runInContext = (contextContainer, fn, ...params) => {
+  if (contextContainer) {
+    return contextContainer.run(fn, ...params);
+  }
+  return fn(...params);
+};
+var createGetRequestContext = (asyncLocalStorage) => () => {
+  return {
+    get: (key) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return void 0;
+      }
+      return store[key] ?? void 0;
+    },
+    set: (key, value) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return;
+      }
+      return store[key] = value;
+    },
+    nativeLocalStorage: asyncLocalStorage
+  };
+};
+var createGetGlobalContext = (asyncLocalStorage) => () => {
+  return {
+    get: (key) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return void 0;
+      }
+      return store[key] ?? void 0;
+    },
+    set: (key, value) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return;
+      }
+      return store[key] = value;
+    },
+    nativeLocalStorage: asyncLocalStorage
+  };
+};
+
 // src/handler/createHandler.ts
-var createHandler = ({ additionalParams, plugins }) => (handler) => async (req, res, next) => {
-  let result;
+var createHandler = ({ additionalParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage }) => (handler) => async (req, res, next) => {
+  const contextParams = {
+    body: req.body,
+    query: req.query,
+    params: req.params,
+    method: req.method,
+    originalUrl: req.originalUrl,
+    protocol: req.protocol,
+    xhr: req.xhr,
+    get: req.get.bind(req),
+    getHeader: req.get.bind(req),
+    locals: res.locals,
+    next,
+    req,
+    res,
+    ...additionalParams
+  };
+  const requestContextContainer = requestContextConfig === false || requestContextConfig === void 0 ? void 0 : RequestContextContainer(requestContextLocalStorage, contextParams, requestContextConfig);
   if (!req.requestTiming) {
     req.requestTiming = Date.now();
     log.request(
@@ -465,29 +559,25 @@ var createHandler = ({ additionalParams, plugins }) => (handler) => async (req, 
     "getHandlerParams"
   )(
     {
-      body: req.body,
-      query: req.query,
-      params: req.params,
-      method: req.method,
-      originalUrl: req.originalUrl,
-      protocol: req.protocol,
-      xhr: req.xhr,
-      get: req.get.bind(req),
-      getHeader: req.get.bind(req),
-      locals: res.locals,
-      next,
-      req,
-      res,
-      ...additionalParams
+      ...contextParams,
+      requestContext: requestContextContainer,
+      globalContext: globalContextContainer
     }
   );
-  try {
-    result = await handler(handlerParams);
-  } catch (error) {
-    return next(error);
-  }
+  let result;
+  await runInContext(globalContextContainer, async () => {
+    return runInContext(requestContextContainer, async () => {
+      try {
+        result = await handler(handlerParams);
+      } catch (error) {
+        next(error);
+        return;
+      }
+    });
+  });
   if (result instanceof Error) {
-    return next(result);
+    next(result);
+    return;
   }
   const mappedResult = await chainPlugins(
     plugins,
@@ -496,12 +586,9 @@ var createHandler = ({ additionalParams, plugins }) => (handler) => async (req, 
   )(result, handlerParams);
   sendResponse_default(req, res, mappedResult);
 };
-var createErrorHandler = ({ additionalParams, plugins }) => (handler) => async (error, req, res, next) => {
+var createErrorHandler = ({ additionalParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage }) => (handler) => async (error, req, res, next) => {
   let result;
-  const handlerParams = await chainPlugins(
-    plugins,
-    "getErrorHandlerParams"
-  )({
+  const contextParams = {
     body: req.body,
     query: req.query,
     // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
@@ -509,19 +596,32 @@ var createErrorHandler = ({ additionalParams, plugins }) => (handler) => async (
     originalUrl: req.originalUrl,
     protocol: req.protocol,
     xhr: req.xhr,
-    get: req.get,
-    getHeader: req.get,
+    get: req.get.bind(req),
+    getHeader: req.get.bind(req),
     locals: res.locals,
     next,
     req,
     res,
     ...additionalParams
+  };
+  const requestContextContainer = requestContextConfig === false || requestContextConfig === void 0 ? void 0 : RequestContextContainer(requestContextLocalStorage, contextParams, requestContextConfig);
+  const handlerParams = await chainPlugins(
+    plugins,
+    "getErrorHandlerParams"
+  )({
+    ...contextParams,
+    requestContext: requestContextContainer,
+    globalContext: globalContextContainer
   });
-  try {
-    result = await handler(error, handlerParams);
-  } catch (error2) {
-    return next(error2);
-  }
+  await runInContext(globalContextContainer, async () => {
+    return runInContext(requestContextContainer, async () => {
+      try {
+        result = await handler(error, handlerParams);
+      } catch (error2) {
+        return next(error2);
+      }
+    });
+  });
   if (result instanceof Error) {
     return next(result);
   }
@@ -601,6 +701,7 @@ var defaultAppValue = Symbol("defaultAppValue");
 var defaultServerValue = Symbol("defaultServerValue");
 
 // src/index.ts
+var import_node_async_hooks = require("async_hooks");
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
 var getDefaultConfig = (userConfig, defaultConfig = {
   cors: null,
@@ -622,9 +723,13 @@ var getDefaultConfig = (userConfig, defaultConfig = {
     cookieParser
   };
 };
+var getRequestContext;
+var getGlobalContext;
 var simpleExpress = async ({
   port,
   plugins: rawPlugins = [],
+  requestContext: requestContextConfig,
+  globalContext: globalContextConfig,
   routes = [],
   middleware: rawMiddleware = [],
   errorHandlers = [],
@@ -696,8 +801,13 @@ var simpleExpress = async ({
       stats.set("helmet-not-found");
     }
   }
-  const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins });
-  const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins });
+  const requestContextLocalStorage = new import_node_async_hooks.AsyncLocalStorage();
+  const globalContextLocalStorage = new import_node_async_hooks.AsyncLocalStorage();
+  getRequestContext = createGetRequestContext(requestContextLocalStorage);
+  getGlobalContext = createGetGlobalContext(globalContextLocalStorage);
+  const globalContextContainer = globalContextConfig === false || globalContextConfig === void 0 ? void 0 : GlobalContextContainer(globalContextLocalStorage, { ...globalContextConfig });
+  const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
+  const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
   const expressMiddlewareFlat = import_lodash3.default.flattenDeep(expressMiddleware);
   stats.set("expressMiddleware", expressMiddlewareFlat.length);
   expressMiddlewareFlat.forEach((middleware2) => app.use(middleware2));
@@ -744,7 +854,7 @@ var simpleExpress = async ({
     }
     return { port: serverAddress.port, address: serverAddress };
   })();
-  return { app, server, stats, port: serverPort, address };
+  return { app, server, stats, port: serverPort, address, getRequestContext, getGlobalContext };
 };
 var wrapMiddleware = (...middleware) => import_lodash3.default.flattenDeep(middleware).map((el) => ({ req, res, next }) => {
   el(req, res, next);
@@ -753,6 +863,8 @@ var src_default = simpleExpress;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ensureArray,
+  getGlobalContext,
+  getRequestContext,
   handleError,
   wrapMiddleware
 });
