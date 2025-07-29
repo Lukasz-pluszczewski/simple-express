@@ -34,6 +34,7 @@ __export(src_exports, {
   getGlobalContext: () => getGlobalContext,
   getRequestContext: () => getRequestContext,
   handleError: () => handleErrors_default,
+  simpleExpress: () => simpleExpress,
   wrapMiddleware: () => wrapMiddleware
 });
 module.exports = __toCommonJS(src_exports);
@@ -866,5 +867,6 @@ var src_default = simpleExpress;
   getGlobalContext,
   getRequestContext,
   handleError,
+  simpleExpress,
   wrapMiddleware
 });

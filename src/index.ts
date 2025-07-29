@@ -243,6 +243,6 @@ export const wrapMiddleware = (...middleware: (ExpressHandler | ExpressHandler[]
     el(req, res, next);
   });
 
-export { handleError, getRequestContext, getGlobalContext };
+export { simpleExpress, handleError, getRequestContext, getGlobalContext };
 
 export default simpleExpress;
