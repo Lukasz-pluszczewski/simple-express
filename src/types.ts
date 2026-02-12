@@ -9,6 +9,10 @@ import type { Server as HttpsServer } from 'https';
 import { getStats } from './stats';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+export interface ErrorClass<TError extends Error = Error> {
+  new (...args: unknown[]): TError;
+}
+
 export type Path = string;
 
 export type RequestObject = Request & { requestTiming?: number };
@@ -79,8 +83,8 @@ export type Handler<AdditionalRouteParams extends Record<string, unknown> = Reco
   SingleHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>
   | Handler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[];
 
-export type SingleErrorHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = (
-    error: Error | any,
+export type SingleErrorHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>, TError extends Error = Error> = (
+    error: TError,
     handlerParams: Omit<HandlerParams<TLocals, TRequestContext, TGlobalContext>, 'params'> & AdditionalRouteParams
   ) =>
   | ResponseDefinition
@@ -90,9 +94,9 @@ export type SingleErrorHandler<AdditionalRouteParams extends Record<string, unkn
   | void
   | Promise<void>
   | Promise<void | ResponseDefinition | Error>;
-export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> =
-  | SingleErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>
-  | ErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[];
+export type ErrorHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>, TError extends Error = Error> =
+  | SingleErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext, TError>
+  | ErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext, TError>[];
 
 export type HttpMethod =  'use' | 'get' | 'post' | 'put' | 'delete' | 'del' | 'options' | 'patch' | 'head' | 'checkout' | 'copy' | 'lock' | 'merge' | 'mkactivity' | 'mkcol' | 'move' | 'm-search' | 'notify' | 'purge' | 'report' | 'search' | 'subscribe' | 'trace' | 'unlock' | 'unsubscribe';
 export type Handlers<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = {

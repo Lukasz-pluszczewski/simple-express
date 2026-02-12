@@ -1,5 +1,6 @@
-import _ from "lodash";
-import { HandlerParams, SingleErrorHandler } from './types';
+import _ from 'lodash';
+
+import { ErrorClass, HandlerParams, SingleErrorHandler } from './types';
 
 const validateErrorClass = (errorClass: ErrorClass) => {
   if (errorClass && !_.isFunction(errorClass)) {
@@ -9,7 +10,21 @@ const validateErrorClass = (errorClass: ErrorClass) => {
   }
 };
 
-const validateHandler = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>) => {
+const validateHandler = <
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+>(
+  errorHandler: SingleErrorHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >
+) => {
   if (!_.isFunction(errorHandler)) {
     throw new Error(
       `handleError arguments error: expected error handler function but got ${typeof errorHandler}`
@@ -17,23 +32,46 @@ const validateHandler = <AdditionalRouteParams extends Record<string, unknown>, 
   }
 };
 
-interface ErrorClass {
-  new (name: string): Error;
-}
-
 /**
  handleErrors(ErrorClass, ErrorHandler)
  or
  handleErrors(ErrorClass[], ErrorHandler)
  */
-type ErrorHandlerTuple<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
-  [errorClass: ErrorClass | ErrorClass[] | undefined | null, errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>];
+type ErrorHandlerTuple<
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+> = [
+  errorClass: ErrorClass<TError> | undefined | null,
+  errorHandler: SingleErrorHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >,
+];
 
 /**
  handleErrors(ErrorHandler)
  */
-type SingleErrorHandlerTuple<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
-  [errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>];
+type SingleErrorHandlerTuple<
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+> = [
+  errorHandler: SingleErrorHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >,
+];
 
 /**
  handleErrors([
@@ -56,8 +94,37 @@ type SingleErrorHandlerTuple<AdditionalRouteParams extends Record<string, unknow
    [ErrorHandler2],
  ],
  */
-type MultipleErrorHandlers<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
-  [(ErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandler<AdditionalRouteParams, TLocals>)[]];
+type MultipleErrorHandlers<
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+> = [
+  (
+    | ErrorHandlerTuple<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TError
+      >
+    | SingleErrorHandlerTuple<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TError
+      >
+    | SingleErrorHandler<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TError
+      >
+  )[],
+];
 
 /**
  handleErrors([
@@ -65,25 +132,116 @@ type MultipleErrorHandlers<AdditionalRouteParams extends Record<string, unknown>
    [ErrorClass2, ErrorHandler2],
  ], DefaultErrorHandler)
  */
-type MultipleErrorHandlersWithDefault<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
-  [(ErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandlerTuple<AdditionalRouteParams, TLocals> | SingleErrorHandler<AdditionalRouteParams, TLocals>)[], SingleErrorHandler<AdditionalRouteParams, TLocals>];
+type MultipleErrorHandlersWithDefault<
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+> = [
+  (
+    | ErrorHandlerTuple<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TError
+      >
+    | SingleErrorHandlerTuple<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TError
+      >
+    | SingleErrorHandler<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TError
+      >
+  )[],
+  SingleErrorHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >,
+];
 
-type HandleErrorArguments<AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>> =
-  | ErrorHandlerTuple<AdditionalRouteParams, TLocals>
-  | SingleErrorHandlerTuple<AdditionalRouteParams, TLocals>
-  | MultipleErrorHandlers<AdditionalRouteParams, TLocals>
-  | MultipleErrorHandlersWithDefault<AdditionalRouteParams, TLocals>;
+type HandleErrorArguments<
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+> =
+  | ErrorHandlerTuple<
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext,
+      TError
+    >
+  | SingleErrorHandlerTuple<
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext,
+      TError
+    >
+  | MultipleErrorHandlers<
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext,
+      TError
+    >
+  | MultipleErrorHandlersWithDefault<
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext,
+      TError
+    >;
 
-export const getArgs = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(
-  args: HandleErrorArguments<AdditionalRouteParams, TLocals>
+export const getArgs = <
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+>(
+  args: HandleErrorArguments<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >
 ) => {
-  const results: [errorClass: ErrorClass | null, errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>][] = [];
-  if (Array.isArray(args[0]) && args.length === 2 && typeof args[0][0] === 'function') {
+  const results: [
+    errorClass: ErrorClass<TError> | null,
+    errorHandler: SingleErrorHandler<
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext,
+      TError
+    >,
+  ][] = [];
+  if (
+    Array.isArray(args[0])
+    && args.length === 2
+    && typeof args[0][0] === 'function'
+  ) {
     /*
       handleErrors(ErrorClass[], ErrorHandler)
      */
     args[0].forEach((errorClass) => {
-      results.push([errorClass, args[1]]);
+      results.push([errorClass as unknown as ErrorClass<TError>, args[1]]);
     });
   } else if (Array.isArray(args[0])) {
     /*
@@ -120,7 +278,7 @@ export const getArgs = <AdditionalRouteParams extends Record<string, unknown>, T
           results.push([errorClass, tuple[1]]);
         });
       } else {
-        results.push([tuple[0], tuple[1]]);
+        results.push([tuple[0] as unknown as ErrorClass<TError>, tuple[1]]);
       }
     });
 
@@ -144,19 +302,41 @@ export const getArgs = <AdditionalRouteParams extends Record<string, unknown>, T
     /*
       handleErrors(ErrorClass, ErrorHandler)
      */
-    results.push([args[0], args[1]]);
+    results.push([args[0] as unknown as ErrorClass<TError>, args[1]]);
   } else {
     throw new Error('handleErrors arguments error: expected 1 or 2 arguments');
   }
 
   return results;
-}
+};
 
-const handleError = <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>([errorClass, errorHandler]: [errorClass: ErrorClass | null, errorHandler: SingleErrorHandler<AdditionalRouteParams, TLocals>]) => {
+const handleError = <
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+>([errorClass, errorHandler]: [
+  errorClass: ErrorClass<TError> | null,
+  errorHandler: SingleErrorHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >,
+]) => {
   validateErrorClass(errorClass);
   validateHandler(errorHandler);
 
-  return (error: Error, handlerParams: Omit<HandlerParams<TLocals>, 'params'> & AdditionalRouteParams) => {
+  return (
+    error: TError,
+    handlerParams: Omit<
+      HandlerParams<TLocals, TRequestContext, TGlobalContext>,
+      'params'
+    >
+      & AdditionalRouteParams
+  ) => {
     if (!errorClass || error instanceof errorClass) {
       return errorHandler(error, handlerParams);
     }
@@ -164,7 +344,21 @@ const handleError = <AdditionalRouteParams extends Record<string, unknown>, TLoc
   };
 };
 
-export default <AdditionalRouteParams extends Record<string, unknown>, TLocals extends Record<string, unknown>>(...args: HandleErrorArguments<AdditionalRouteParams, TLocals>) => {
+export default <
+  AdditionalRouteParams extends Record<string, unknown>,
+  TLocals extends Record<string, unknown>,
+  TRequestContext extends Record<string, unknown> = Record<string, never>,
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
+  TError extends Error = Error,
+>(
+  ...args: HandleErrorArguments<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext,
+    TError
+  >
+) => {
   const errorHandlers = getArgs(args);
 
   return errorHandlers.map(handleError);

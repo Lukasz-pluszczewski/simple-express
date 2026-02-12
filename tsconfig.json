@@ -3,6 +3,7 @@
     "esModuleInterop": true,
     "noErrorTruncation": true,
     "moduleResolution": "node",
+    "skipLibCheck": true,
     "types": ["vitest/globals"]
   },
 }
