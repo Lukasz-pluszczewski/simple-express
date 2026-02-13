@@ -1,12 +1,12 @@
-import { log } from "../log";
-
 import { Response } from 'express';
-import { RequestObject, ResponseDefinition } from "../types";
+
+import { log } from '../log';
+import { RequestObject, ResponseDefinition } from '../types';
 
 export const responseMethods = {
-  default: "send",
-  json: "json",
-  send: "send",
+  default: 'send',
+  json: 'json',
+  send: 'send',
   none: null,
 };
 
@@ -17,13 +17,17 @@ const getResponseMethod = (method, body) => {
   return responseMethods[method];
 };
 
-const sendResponse = (req: RequestObject, res: Response, result?: ResponseDefinition): void => {
+const sendResponse = (
+  req: RequestObject,
+  res: Response,
+  result?: ResponseDefinition
+): void => {
   if (!result) {
     return;
   }
 
   if (res.headersSent) {
-    return log("ERROR: Headers have already been sent");
+    return log('ERROR: Headers have already been sent');
   }
 
   const {

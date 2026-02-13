@@ -40,40 +40,49 @@ const _typeAssertions = () => {
   });
 
   handleErrors([
-    [[InferenceError1, InferenceError2], (error) => {
-      if ('field1' in error) {
-        error.field1;
-      }
-      if ('field2' in error) {
-        error.field2;
-      }
-      // @ts-expect-error field3 is outside inferred union
-      error.field3;
+    [
+      [InferenceError1, InferenceError2],
+      (error) => {
+        if ('field1' in error) {
+          error.field1;
+        }
+        if ('field2' in error) {
+          error.field2;
+        }
+        // @ts-expect-error field3 is outside inferred union
+        error.field3;
 
-      return { body: 'ok' };
-    }],
+        return { body: 'ok' };
+      },
+    ],
   ]);
 
   handleErrors([
-    [InferenceError1, (error) => {
-      error.field1;
-      // @ts-expect-error field2 is not on InferenceError1
-      error.field2;
-
-      return { body: 'one' };
-    }],
-    [[InferenceError2, InferenceError3], (error) => {
-      if ('field2' in error) {
+    [
+      InferenceError1,
+      (error) => {
+        error.field1;
+        // @ts-expect-error field2 is not on InferenceError1
         error.field2;
-      }
-      if ('field3' in error) {
-        error.field3;
-      }
-      // @ts-expect-error field1 is outside this tuple's union
-      error.field1;
 
-      return { body: 'two' };
-    }],
+        return { body: 'one' };
+      },
+    ],
+    [
+      [InferenceError2, InferenceError3],
+      (error) => {
+        if ('field2' in error) {
+          error.field2;
+        }
+        if ('field3' in error) {
+          error.field3;
+        }
+        // @ts-expect-error field1 is outside this tuple's union
+        error.field1;
+
+        return { body: 'two' };
+      },
+    ],
   ]);
 };
 

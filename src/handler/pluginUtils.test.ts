@@ -1,27 +1,28 @@
-import { chainPlugins } from './pluginUtils';
 import { Plugin } from '../types';
+import { chainPlugins } from './pluginUtils';
 
 const pluginFoo: ReturnType<Plugin> = {
   getHandlerParams: (previous) => ({ ...previous, foo: 'fooValue' }),
-}
+};
 const pluginBar: ReturnType<Plugin> = {
   getHandlerParams: (previous) => ({ ...previous, bar: 'barValue' }),
-}
+};
 
 describe('pluginUtils', () => {
   describe('chainPlugins', () => {
     it('should chain plugins', async () => {
-      const results =await chainPlugins(
-        [
-          pluginFoo,
-          pluginBar,
-        ],
-        'getHandlerParams',
+      const results = await chainPlugins(
+        [pluginFoo, pluginBar],
+        'getHandlerParams'
       )({
         test: 'testValue',
       });
 
-      expect(results).toEqual({ foo: 'fooValue', bar: 'barValue', test: 'testValue' });
+      expect(results).toEqual({
+        foo: 'fooValue',
+        bar: 'barValue',
+        test: 'testValue',
+      });
     });
   });
 });

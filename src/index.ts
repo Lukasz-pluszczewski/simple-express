@@ -1,24 +1,27 @@
-import _ from 'lodash';
 import http, { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
-import express, { Handler as ExpressHandler, Express } from 'express';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import express, { Express, Handler as ExpressHandler } from 'express';
+import _ from 'lodash';
 
+import buildRoutes from './buildRoutes';
+import { defaultAppValue, defaultServerValue } from './constants';
+import handleError from './handleErrors';
+import {
+  createGetGlobalContext,
+  createGetRequestContext,
+  GlobalContextContainer,
+} from './handler/context';
+import { createErrorHandler, createHandler } from './handler/createHandler';
 import { log } from './log';
 import { getStats } from './stats';
-import buildRoutes from './buildRoutes';
-import { createErrorHandler, createHandler } from './handler/createHandler';
-import handleError from './handleErrors';
-import { defaultAppValue, defaultServerValue } from './constants';
-
 import {
-  SimpleExpressConfig,
-  SimpleExpressConfigForPlugins,
   Config,
   HandlerParams,
+  SimpleExpressConfig,
+  SimpleExpressConfigForPlugins,
   SimpleExpressResult,
 } from './types';
-import { createGetGlobalContext, createGetRequestContext, GlobalContextContainer } from './handler/context';
-import { AsyncLocalStorage } from 'node:async_hooks';
 
 export type {
   Routes,
@@ -31,7 +34,6 @@ export type {
   HandlerParams,
   SimpleExpressResult,
 } from './types';
-
 
 export const ensureArray = <T>(value: T): T extends any[] ? T : T[] =>
   (Array.isArray(value) ? value : [value]) as T extends any[] ? T : T[];
@@ -69,7 +71,7 @@ const simpleExpress = async <
   AdditionalRouteParams extends Record<string, unknown> = Record<string, never>,
   TLocals extends Record<string, unknown> = Record<string, never>,
   TRequestContext extends Record<string, unknown> = Record<string, never>,
-  TGlobalContext extends Record<string, unknown> = Record<string, never>
+  TGlobalContext extends Record<string, unknown> = Record<string, never>,
 >({
   port,
   plugins: rawPlugins = [],
@@ -83,7 +85,12 @@ const simpleExpress = async <
   routeParams = {} as any,
   app: userApp = defaultAppValue,
   server: userServer = defaultServerValue,
-}: SimpleExpressConfig<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext> = {}): Promise<SimpleExpressResult<TRequestContext, TGlobalContext>> => {
+}: SimpleExpressConfig<
+  AdditionalRouteParams,
+  TLocals,
+  TRequestContext,
+  TGlobalContext
+> = {}): Promise<SimpleExpressResult<TRequestContext, TGlobalContext>> => {
   if (port) {
     log(`Initializing simpleExpress app on port ${port}...`);
   } else {
@@ -93,7 +100,12 @@ const simpleExpress = async <
   let middleware = ensureArray(rawMiddleware);
 
   // simpleExpress config for plugins
-  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext> = {
+  const simpleExpressConfigForPlugins: SimpleExpressConfigForPlugins<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext
+  > = {
     port,
     plugins: rawPlugins,
     routes,
@@ -115,10 +127,12 @@ const simpleExpress = async <
   const stats = getStats(port);
 
   // creating express app
-  const app = (userApp === defaultAppValue ? express() : userApp) as
-    Express & { server: HttpServer | HttpsServer };
-  const server = (userServer === defaultServerValue ? http.createServer(app) : userServer) as
-    HttpServer | HttpsServer;
+  const app = (userApp === defaultAppValue ? express() : userApp) as Express & {
+    server: HttpServer | HttpsServer;
+  };
+  const server = (
+    userServer === defaultServerValue ? http.createServer(app) : userServer
+  ) as HttpServer | HttpsServer;
   app.server = server;
 
   // applying default middlewares
@@ -170,13 +184,42 @@ const simpleExpress = async <
   getRequestContext = createGetRequestContext(requestContextLocalStorage);
   getGlobalContext = createGetGlobalContext(globalContextLocalStorage);
 
-  const globalContextContainer = (globalContextConfig === false || globalContextConfig === undefined) ? undefined : GlobalContextContainer(globalContextLocalStorage, { ...globalContextConfig });
+  const globalContextContainer =
+    globalContextConfig === false || globalContextConfig === undefined
+      ? undefined
+      : GlobalContextContainer(globalContextLocalStorage, {
+          ...globalContextConfig,
+        });
 
-  const createHandlerWithParams = createHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
-  const createErrorHandlerWithParams = createErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
+  const createHandlerWithParams = createHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext
+  >({
+    additionalParams: routeParams,
+    plugins,
+    requestContextConfig,
+    globalContextContainer,
+    requestContextLocalStorage,
+  });
+  const createErrorHandlerWithParams = createErrorHandler<
+    AdditionalRouteParams,
+    TLocals,
+    TRequestContext,
+    TGlobalContext
+  >({
+    additionalParams: routeParams,
+    plugins,
+    requestContextConfig,
+    globalContextContainer,
+    requestContextLocalStorage,
+  });
 
   // applying custom express middlewares
-  const expressMiddlewareFlat = _.flattenDeep(expressMiddleware) as ExpressHandler[];
+  const expressMiddlewareFlat = _.flattenDeep(
+    expressMiddleware
+  ) as ExpressHandler[];
   stats.set('expressMiddleware', expressMiddlewareFlat.length);
   expressMiddlewareFlat.forEach((middleware) => app.use(middleware));
 
@@ -235,13 +278,26 @@ const simpleExpress = async <
     return { port: serverAddress.port, address: serverAddress };
   })();
 
-  return { app, server, stats, port: serverPort, address, getRequestContext, getGlobalContext };
+  return {
+    app,
+    server,
+    stats,
+    port: serverPort,
+    address,
+    getRequestContext,
+    getGlobalContext,
+  };
 };
 
-export const wrapMiddleware = (...middleware: (ExpressHandler | ExpressHandler[])[]) =>
-  _.flattenDeep(middleware).map((el) => ({ req, res, next }: HandlerParams<any>) => {
-    el(req, res, next);
-  });
+export const wrapMiddleware = (
+  ...middleware: (ExpressHandler | ExpressHandler[])[]
+) =>
+  _.flattenDeep(middleware).map(
+    (el) =>
+      ({ req, res, next }: HandlerParams<any>) => {
+        el(req, res, next);
+      }
+  );
 
 export { simpleExpress, handleError, getRequestContext, getGlobalContext };
 

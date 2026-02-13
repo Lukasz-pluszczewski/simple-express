@@ -32,7 +32,11 @@ const validateHandler = <
   }
 };
 
-type ErrorClassInput = ErrorClass<any> | readonly ErrorClass<any>[] | undefined | null;
+type ErrorClassInput =
+  | ErrorClass<any>
+  | readonly ErrorClass<any>[]
+  | undefined
+  | null;
 
 type InferErrorFromClassInput<TErrorClassInput extends ErrorClassInput> =
   TErrorClassInput extends readonly ErrorClass<any>[]
@@ -94,24 +98,24 @@ type ErrorHandlersList<
 > = {
   [K in keyof TClassInputs]:
     | ErrorHandlerTupleForClassInput<
-      AdditionalRouteParams,
-      TLocals,
-      TRequestContext,
-      TGlobalContext,
-      TClassInputs[K]
-    >
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext,
+        TClassInputs[K]
+      >
     | SingleErrorHandlerTuple<
-      AdditionalRouteParams,
-      TLocals,
-      TRequestContext,
-      TGlobalContext
-    >
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext
+      >
     | FallbackErrorHandler<
-      AdditionalRouteParams,
-      TLocals,
-      TRequestContext,
-      TGlobalContext
-    >
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext
+      >;
 };
 
 type RuntimeErrorHandler<
@@ -127,7 +131,11 @@ type RuntimeErrorHandler<
   any
 >;
 
-type RuntimeErrorClassInput = ErrorClass<any> | readonly ErrorClass<any>[] | undefined | null;
+type RuntimeErrorClassInput =
+  | ErrorClass<any>
+  | readonly ErrorClass<any>[]
+  | undefined
+  | null;
 
 type RuntimeErrorHandlerTuple<
   AdditionalRouteParams extends Record<string, unknown>,
@@ -165,23 +173,23 @@ type RuntimeHandlersEntry<
   TGlobalContext extends Record<string, unknown> = Record<string, never>,
 > =
   | RuntimeErrorHandlerTuple<
-    AdditionalRouteParams,
-    TLocals,
-    TRequestContext,
-    TGlobalContext
-  >
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext
+    >
   | RuntimeSingleErrorHandlerTuple<
-    AdditionalRouteParams,
-    TLocals,
-    TRequestContext,
-    TGlobalContext
-  >
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext
+    >
   | RuntimeErrorHandler<
-    AdditionalRouteParams,
-    TLocals,
-    TRequestContext,
-    TGlobalContext
-  >;
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext
+    >;
 
 type HandleErrorRuntimeArguments<
   AdditionalRouteParams extends Record<string, unknown>,
@@ -190,39 +198,39 @@ type HandleErrorRuntimeArguments<
   TGlobalContext extends Record<string, unknown> = Record<string, never>,
 > =
   | RuntimeErrorHandlerTuple<
-    AdditionalRouteParams,
-    TLocals,
-    TRequestContext,
-    TGlobalContext
-  >
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext
+    >
   | RuntimeSingleErrorHandlerTuple<
-    AdditionalRouteParams,
-    TLocals,
-    TRequestContext,
-    TGlobalContext
-  >
+      AdditionalRouteParams,
+      TLocals,
+      TRequestContext,
+      TGlobalContext
+    >
   | readonly [
-    handlers: readonly RuntimeHandlersEntry<
-      AdditionalRouteParams,
-      TLocals,
-      TRequestContext,
-      TGlobalContext
-    >[],
-  ]
+      handlers: readonly RuntimeHandlersEntry<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext
+      >[],
+    ]
   | readonly [
-    handlers: readonly RuntimeHandlersEntry<
-      AdditionalRouteParams,
-      TLocals,
-      TRequestContext,
-      TGlobalContext
-    >[],
-    defaultErrorHandler: RuntimeErrorHandler<
-      AdditionalRouteParams,
-      TLocals,
-      TRequestContext,
-      TGlobalContext
-    >,
-  ];
+      handlers: readonly RuntimeHandlersEntry<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext
+      >[],
+      defaultErrorHandler: RuntimeErrorHandler<
+        AdditionalRouteParams,
+        TLocals,
+        TRequestContext,
+        TGlobalContext
+      >,
+    ];
 
 export const getArgs = <
   AdditionalRouteParams extends Record<string, unknown>,
@@ -398,7 +406,7 @@ function handleErrors<
     TRequestContext,
     TGlobalContext,
     InstanceType<TErrorClass>
-  >,
+  >
 ): HandleErrorReturn<
   AdditionalRouteParams,
   TLocals,
@@ -419,7 +427,7 @@ function handleErrors<
     TRequestContext,
     TGlobalContext,
     InstanceType<TErrorClasses[number]>
-  >,
+  >
 ): HandleErrorReturn<
   AdditionalRouteParams,
   TLocals,
@@ -437,7 +445,7 @@ function handleErrors<
     TLocals,
     TRequestContext,
     TGlobalContext
-  >,
+  >
 ): HandleErrorReturn<
   AdditionalRouteParams,
   TLocals,
@@ -457,7 +465,7 @@ function handleErrors<
     TRequestContext,
     TGlobalContext,
     TClassInputs
-  >,
+  >
 ): HandleErrorReturn<
   AdditionalRouteParams,
   TLocals,
@@ -483,7 +491,7 @@ function handleErrors<
     TLocals,
     TRequestContext,
     TGlobalContext
-  >,
+  >
 ): HandleErrorReturn<
   AdditionalRouteParams,
   TLocals,
