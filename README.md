@@ -1165,6 +1165,9 @@ See the demo app for tests examples.
 `npm run demo`
 
 ## Changelog
+### 3.2.0
+- Updated error types
+
 ### 3.1.2
 - Added simpleExpress named export 
 
