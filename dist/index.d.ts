@@ -1,12 +1,12 @@
 import { Request, Response, Handler as Handler$1, Express } from 'express';
-import { CorsOptions, CorsOptionsDelegate } from 'cors';
-import { CookieParseOptions } from 'cookie-parser';
-import { OptionsJson } from 'body-parser';
-import { HelmetOptions } from 'helmet';
-import { AddressInfo } from 'net';
 import { Server } from 'http';
 import { Server as Server$1 } from 'https';
+import { AddressInfo } from 'net';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { OptionsJson } from 'body-parser';
+import { CookieParseOptions } from 'cookie-parser';
+import { CorsOptions, CorsOptionsDelegate } from 'cors';
+import { HelmetOptions } from 'helmet';
 
 declare const getStats: (port: any) => {
     set: (field: any, number?: number) => number;
@@ -68,7 +68,7 @@ type ResponseDefinition = {
     headers?: Headers;
     type?: string;
 };
-type SingleHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = ((handlerParams: HandlerParams<TLocals, TRequestContext, TGlobalContext> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>);
+type SingleHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = (handlerParams: HandlerParams<TLocals, TRequestContext, TGlobalContext> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>;
 type Handler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>> = SingleHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext> | Handler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext>[];
 type SingleErrorHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>, TError extends Error = Error> = (error: TError, handlerParams: Omit<HandlerParams<TLocals, TRequestContext, TGlobalContext>, 'params'> & AdditionalRouteParams) => ResponseDefinition | Promise<ResponseDefinition> | Error | Promise<Error> | void | Promise<void> | Promise<void | ResponseDefinition | Error>;
 type ErrorHandler<AdditionalRouteParams extends Record<string, unknown> = Record<string, never>, TLocals extends Record<string, unknown> = Record<string, never>, TRequestContext extends Record<string, unknown> = Record<string, never>, TGlobalContext extends Record<string, unknown> = Record<string, never>, TError extends Error = Error> = SingleErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext, TError> | ErrorHandler<AdditionalRouteParams, TLocals, TRequestContext, TGlobalContext, TError>[];

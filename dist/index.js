@@ -38,149 +38,10 @@ __export(index_exports, {
   wrapMiddleware: () => wrapMiddleware
 });
 module.exports = __toCommonJS(index_exports);
-var import_lodash3 = __toESM(require("lodash"));
 var import_http = __toESM(require("http"));
+var import_node_async_hooks = require("async_hooks");
 var import_express2 = __toESM(require("express"));
-
-// src/log.ts
-var import_debug = __toESM(require("debug"));
-var log = (0, import_debug.default)("simpleExpress");
-log.request = (0, import_debug.default)("simpleExpress:request");
-log.stats = (0, import_debug.default)("simpleExpress:stats");
-log.warning = (0, import_debug.default)("simpleExpress:warning");
-
-// src/stats.ts
-var getStats = (port) => {
-  const stats = {
-    counters: {},
-    events: {}
-  };
-  const addToList = (category, field, data) => {
-    if (!stats[category]) {
-      stats[category] = {};
-    }
-    if (!stats[category][field]) {
-      stats[category][field] = [];
-    }
-    stats[category][field].push(data);
-  };
-  const logDefaultMiddlewares = (statsInstance2) => {
-    const logMessages = [];
-    if (statsInstance2.getCounter("cors")) {
-      logMessages.push("cors");
-    }
-    if (statsInstance2.getCounter("jsonBodyParser")) {
-      logMessages.push("bodyParser.json");
-    }
-    if (statsInstance2.getCounter("cookieParser")) {
-      logMessages.push("cookie-parser");
-    }
-    if (statsInstance2.getCounter("helmet")) {
-      logMessages.push("helmet");
-    }
-    if (logMessages.length) {
-      log.stats(`  Used built-in middlewares: ${logMessages.join(", ")}`);
-    }
-    const notFoundMessages = [];
-    if (statsInstance2.getCounter("cors-not-found")) {
-      notFoundMessages.push("cors");
-    }
-    if (statsInstance2.getCounter("jsonBodyParser-not-found")) {
-      notFoundMessages.push("bodyParser.json");
-    }
-    if (statsInstance2.getCounter("cookieParser-not-found")) {
-      notFoundMessages.push("cookie-parser");
-    }
-    if (statsInstance2.getCounter("helmet-not-found")) {
-      notFoundMessages.push("helmet");
-    }
-    if (notFoundMessages.length) {
-      log.stats(`  Corresponding libraries for built-in middlewares were not installed: ${notFoundMessages.join(", ")}. To enable them, install the corresponding npm packages.`);
-    }
-  };
-  const statsInstance = {
-    set: (field, number = 1) => stats.counters[field] = number,
-    add: (field, number = 1) => stats.counters[field] = stats.counters[field] ? stats.counters[field] + number : number,
-    getCounter: (field) => stats.counters[field],
-    registerEvent: (eventName, data) => {
-      switch (eventName) {
-        case "registeringRoute":
-          statsInstance.add("routes");
-          statsInstance.add("routeHandlers", data.numberOfHandlers);
-          addToList("events", eventName, { timestamp: Date.now(), ...data });
-          break;
-        default:
-          addToList("events", eventName, { timestamp: Date.now(), ...data });
-      }
-    },
-    getEvents: (eventName) => stats.events[eventName],
-    logStartup: () => {
-      if (port) {
-        log.stats(`-->Stats for simpleExpress app on ${port} port:<--`);
-      } else {
-        log.stats(`-->Stats for simpleExpress app (no port):<--`);
-      }
-      logDefaultMiddlewares(statsInstance);
-      if (statsInstance.getCounter("expressMiddleware")) {
-        log.stats(
-          `  Registered ${statsInstance.getCounter(
-            "expressMiddleware"
-          )} expressMiddleware${statsInstance.getCounter("expressMiddleware") > 1 ? "s" : ""}`
-        );
-      }
-      if (statsInstance.getCounter("middleware")) {
-        log.stats(
-          `  Registered ${statsInstance.getCounter("middleware")} middleware${statsInstance.getCounter("middleware") > 1 ? "s" : ""}`
-        );
-      }
-      if (statsInstance.getCounter("errorHandlers")) {
-        log.stats(
-          `  Registered ${statsInstance.getCounter(
-            "errorHandlers"
-          )} errorHandlers${statsInstance.getCounter("errorHandlers") > 1 ? "s" : ""}`
-        );
-      }
-      if (!statsInstance.getCounter("routes")) {
-        return log.stats(`  No routes registered`);
-      }
-      log.stats(
-        `  Registered ${statsInstance.getCounter(
-          "routes"
-        )} routes with ${statsInstance.getCounter("routeHandlers")} handlers:`
-      );
-      const mappedRoutes = /* @__PURE__ */ new Set();
-      const mappedMethods = {};
-      stats.events.registeringRoute.forEach((routeEvent) => {
-        const { path, method, numberOfHandlers, names } = routeEvent;
-        if (!mappedMethods[path]) {
-          mappedMethods[path] = [];
-        }
-        mappedMethods[path].push({ method, numberOfHandlers, names });
-        mappedRoutes.add(path);
-      });
-      mappedRoutes.forEach((path) => {
-        const invalidRoute = path.indexOf("/") !== 0 && path !== "*";
-        log.stats(
-          `    ${path}${invalidRoute ? ' - WARNING: Route not starting with "/"!' : ""}`
-        );
-        mappedMethods[path].forEach(
-          ({ method, numberOfHandlers, names = [] }) => {
-            let foundNames = false;
-            names.forEach((name) => {
-              if (name !== "anonymous") {
-                foundNames = true;
-              }
-            });
-            log.stats(
-              `      ${method}${numberOfHandlers > 1 || foundNames ? `, ${numberOfHandlers} handler${numberOfHandlers === 1 ? "" : "s"}` : ""}${names && names.length && foundNames ? `: ${names.join(", ")}` : ""}`
-            );
-          }
-        );
-      });
-    }
-  };
-  return statsInstance;
-};
+var import_lodash3 = __toESM(require("lodash"));
 
 // src/buildRoutes.ts
 var import_express = require("express");
@@ -364,274 +225,9 @@ var getBuildRoutes = ({ stats, createHandlerWithParams }) => {
 };
 var buildRoutes_default = getBuildRoutes;
 
-// src/handler/sendResponse.ts
-var responseMethods = {
-  default: "send",
-  json: "json",
-  send: "send",
-  none: null
-};
-var getResponseMethod = (method, body) => {
-  if (!method || !responseMethods.hasOwnProperty(method)) {
-    return responseMethods.default;
-  }
-  return responseMethods[method];
-};
-var sendResponse = (req, res, result) => {
-  if (!result) {
-    return;
-  }
-  if (res.headersSent) {
-    return log("ERROR: Headers have already been sent");
-  }
-  const {
-    body = null,
-    status,
-    method,
-    redirect = false,
-    headers = null,
-    type = null
-  } = result;
-  const responseMethod = getResponseMethod(method, body);
-  if (responseMethod) {
-    if (type) {
-      res.type(type);
-    }
-    if (headers) {
-      res.set(headers);
-    }
-    if (redirect) {
-      if (status) {
-        res.redirect(status, redirect);
-      } else {
-        res.redirect(redirect);
-      }
-      log.request(
-        `Request ended with redirect after ${Date.now() - req.requestTiming}ms; ${req.protocol}, ${req.originalUrl}${status && `, status: ${status}`}`
-      );
-    } else {
-      log.request(
-        `Request ended with response after ${Date.now() - req.requestTiming}ms; ${req.protocol}, ${req.originalUrl}, status: ${status || 200}`
-      );
-      res.status(status || 200)[responseMethod](body);
-    }
-  }
-};
-var sendResponse_default = sendResponse;
-
-// src/utils/asyncCollections.ts
-var LastClass = class {
-  constructor(value) {
-    this.value = value;
-  }
-};
-async function asyncReduce(array, callback, initialValue) {
-  let accumulator = initialValue;
-  for (let i = 0; i < array.length; i++) {
-    const iterationResult = await callback(accumulator, array[i], i, array);
-    if (iterationResult instanceof LastClass) {
-      accumulator = iterationResult.value;
-      break;
-    }
-    accumulator = iterationResult;
-  }
-  return accumulator;
-}
-
-// src/handler/pluginUtils.ts
-var chainPlugins = (plugins, method, breakCondition = () => false) => async (param, ...rest) => {
-  const lastResult = await asyncReduce(
-    plugins,
-    async (previousResult, plugin, index) => {
-      if (plugin[method] && !breakCondition(previousResult)) {
-        return plugin[method](previousResult, ...rest);
-      }
-      return previousResult;
-    },
-    param
-  );
-  return lastResult;
-};
-
-// src/handler/context.ts
-var createContextContainer = (asyncLocalStorage, initialData) => {
-  return {
-    get: (key) => {
-      const store = asyncLocalStorage.getStore();
-      if (!store) {
-        return void 0;
-      }
-      return store[key] ?? void 0;
-    },
-    set: (key, value) => {
-      const store = asyncLocalStorage.getStore();
-      if (!store) {
-        return;
-      }
-      return store[key] = value;
-    },
-    nativeLocalStorage: asyncLocalStorage,
-    run: async (fn, ...params) => {
-      await asyncLocalStorage.run(initialData, () => {
-        return fn(...params);
-      });
-    }
-  };
-};
-var RequestContextContainer = (asyncLocalStorage, handlerParams, initialDataFactory) => {
-  return createContextContainer(asyncLocalStorage, initialDataFactory(handlerParams));
-};
-var GlobalContextContainer = (asyncLocalStorage, initialData) => {
-  return createContextContainer(asyncLocalStorage, initialData);
-};
-var runInContext = (contextContainer, fn, ...params) => {
-  if (contextContainer) {
-    return contextContainer.run(fn, ...params);
-  }
-  return fn(...params);
-};
-var createGetRequestContext = (asyncLocalStorage) => () => {
-  return {
-    get: (key) => {
-      const store = asyncLocalStorage.getStore();
-      if (!store) {
-        return void 0;
-      }
-      return store[key] ?? void 0;
-    },
-    set: (key, value) => {
-      const store = asyncLocalStorage.getStore();
-      if (!store) {
-        return;
-      }
-      return store[key] = value;
-    },
-    nativeLocalStorage: asyncLocalStorage
-  };
-};
-var createGetGlobalContext = (asyncLocalStorage) => () => {
-  return {
-    get: (key) => {
-      const store = asyncLocalStorage.getStore();
-      if (!store) {
-        return void 0;
-      }
-      return store[key] ?? void 0;
-    },
-    set: (key, value) => {
-      const store = asyncLocalStorage.getStore();
-      if (!store) {
-        return;
-      }
-      return store[key] = value;
-    },
-    nativeLocalStorage: asyncLocalStorage
-  };
-};
-
-// src/handler/createHandler.ts
-var createHandler = ({ additionalParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage }) => (handler) => async (req, res, next) => {
-  const contextParams = {
-    body: req.body,
-    query: req.query,
-    params: req.params,
-    method: req.method,
-    originalUrl: req.originalUrl,
-    protocol: req.protocol,
-    xhr: req.xhr,
-    get: req.get.bind(req),
-    getHeader: req.get.bind(req),
-    locals: res.locals,
-    next,
-    req,
-    res,
-    ...additionalParams
-  };
-  const requestContextContainer = requestContextConfig === false || requestContextConfig === void 0 ? void 0 : RequestContextContainer(requestContextLocalStorage, contextParams, requestContextConfig);
-  if (!req.requestTiming) {
-    req.requestTiming = Date.now();
-    log.request(
-      `Request started ${req.requestTiming}ms, ${req.protocol}, ${req.originalUrl}`
-    );
-  }
-  const handlerParams = await chainPlugins(
-    plugins,
-    "getHandlerParams"
-  )(
-    {
-      ...contextParams,
-      requestContext: requestContextContainer,
-      globalContext: globalContextContainer
-    }
-  );
-  let result;
-  await runInContext(globalContextContainer, async () => {
-    return runInContext(requestContextContainer, async () => {
-      try {
-        result = await handler(handlerParams);
-      } catch (error) {
-        next(error);
-        return;
-      }
-    });
-  });
-  if (result instanceof Error) {
-    next(result);
-    return;
-  }
-  const mappedResult = await chainPlugins(
-    plugins,
-    "mapResponse",
-    (previousResult) => !previousResult || previousResult.type === "none"
-  )(result, handlerParams);
-  sendResponse_default(req, res, mappedResult);
-};
-var createErrorHandler = ({ additionalParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage }) => (handler) => async (error, req, res, next) => {
-  let result;
-  const contextParams = {
-    body: req.body,
-    query: req.query,
-    // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
-    method: req.method,
-    originalUrl: req.originalUrl,
-    protocol: req.protocol,
-    xhr: req.xhr,
-    get: req.get.bind(req),
-    getHeader: req.get.bind(req),
-    locals: res.locals,
-    next,
-    req,
-    res,
-    ...additionalParams
-  };
-  const requestContextContainer = requestContextConfig === false || requestContextConfig === void 0 ? void 0 : RequestContextContainer(requestContextLocalStorage, contextParams, requestContextConfig);
-  const handlerParams = await chainPlugins(
-    plugins,
-    "getErrorHandlerParams"
-  )({
-    ...contextParams,
-    requestContext: requestContextContainer,
-    globalContext: globalContextContainer
-  });
-  await runInContext(globalContextContainer, async () => {
-    return runInContext(requestContextContainer, async () => {
-      try {
-        result = await handler(error, handlerParams);
-      } catch (error2) {
-        return next(error2);
-      }
-    });
-  });
-  if (result instanceof Error) {
-    return next(result);
-  }
-  const mappedResult = await chainPlugins(
-    plugins,
-    "mapResponse",
-    (previousResult) => !previousResult || previousResult.type === "none"
-  )(result, handlerParams);
-  sendResponse_default(req, res, mappedResult);
-};
+// src/constants.ts
+var defaultAppValue = /* @__PURE__ */ Symbol("defaultAppValue");
+var defaultServerValue = /* @__PURE__ */ Symbol("defaultServerValue");
 
 // src/handleErrors.ts
 var import_lodash2 = __toESM(require("lodash"));
@@ -703,12 +299,444 @@ function handleErrors(...args) {
 }
 var handleErrors_default = handleErrors;
 
-// src/constants.ts
-var defaultAppValue = /* @__PURE__ */ Symbol("defaultAppValue");
-var defaultServerValue = /* @__PURE__ */ Symbol("defaultServerValue");
+// src/handler/context.ts
+var createContextContainer = (asyncLocalStorage, initialData) => {
+  return {
+    get: (key) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return void 0;
+      }
+      return store[key] ?? void 0;
+    },
+    set: (key, value) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return;
+      }
+      return store[key] = value;
+    },
+    nativeLocalStorage: asyncLocalStorage,
+    run: async (fn, ...params) => {
+      await asyncLocalStorage.run(initialData, () => {
+        return fn(...params);
+      });
+    }
+  };
+};
+var RequestContextContainer = (asyncLocalStorage, handlerParams, initialDataFactory) => {
+  return createContextContainer(
+    asyncLocalStorage,
+    initialDataFactory(handlerParams)
+  );
+};
+var GlobalContextContainer = (asyncLocalStorage, initialData) => {
+  return createContextContainer(asyncLocalStorage, initialData);
+};
+var runInContext = (contextContainer, fn, ...params) => {
+  if (contextContainer) {
+    return contextContainer.run(fn, ...params);
+  }
+  return fn(...params);
+};
+var createGetRequestContext = (asyncLocalStorage) => () => {
+  return {
+    get: (key) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return void 0;
+      }
+      return store[key] ?? void 0;
+    },
+    set: (key, value) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return;
+      }
+      return store[key] = value;
+    },
+    nativeLocalStorage: asyncLocalStorage
+  };
+};
+var createGetGlobalContext = (asyncLocalStorage) => () => {
+  return {
+    get: (key) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return void 0;
+      }
+      return store[key] ?? void 0;
+    },
+    set: (key, value) => {
+      const store = asyncLocalStorage.getStore();
+      if (!store) {
+        return;
+      }
+      return store[key] = value;
+    },
+    nativeLocalStorage: asyncLocalStorage
+  };
+};
+
+// src/log.ts
+var import_debug = __toESM(require("debug"));
+var log = (0, import_debug.default)("simpleExpress");
+log.request = (0, import_debug.default)("simpleExpress:request");
+log.stats = (0, import_debug.default)("simpleExpress:stats");
+log.warning = (0, import_debug.default)("simpleExpress:warning");
+
+// src/utils/asyncCollections.ts
+var LastClass = class {
+  constructor(value) {
+    this.value = value;
+  }
+};
+async function asyncReduce(array, callback, initialValue) {
+  let accumulator = initialValue;
+  for (let i = 0; i < array.length; i++) {
+    const iterationResult = await callback(
+      accumulator,
+      array[i],
+      i,
+      array
+    );
+    if (iterationResult instanceof LastClass) {
+      accumulator = iterationResult.value;
+      break;
+    }
+    accumulator = iterationResult;
+  }
+  return accumulator;
+}
+
+// src/handler/pluginUtils.ts
+var chainPlugins = (plugins, method, breakCondition = () => false) => async (param, ...rest) => {
+  const lastResult = await asyncReduce(
+    plugins,
+    async (previousResult, plugin, index) => {
+      if (plugin[method] && !breakCondition(previousResult)) {
+        return plugin[method](previousResult, ...rest);
+      }
+      return previousResult;
+    },
+    param
+  );
+  return lastResult;
+};
+
+// src/handler/sendResponse.ts
+var responseMethods = {
+  default: "send",
+  json: "json",
+  send: "send",
+  none: null
+};
+var getResponseMethod = (method, body) => {
+  if (!method || !responseMethods.hasOwnProperty(method)) {
+    return responseMethods.default;
+  }
+  return responseMethods[method];
+};
+var sendResponse = (req, res, result) => {
+  if (!result) {
+    return;
+  }
+  if (res.headersSent) {
+    return log("ERROR: Headers have already been sent");
+  }
+  const {
+    body = null,
+    status,
+    method,
+    redirect = false,
+    headers = null,
+    type = null
+  } = result;
+  const responseMethod = getResponseMethod(method, body);
+  if (responseMethod) {
+    if (type) {
+      res.type(type);
+    }
+    if (headers) {
+      res.set(headers);
+    }
+    if (redirect) {
+      if (status) {
+        res.redirect(status, redirect);
+      } else {
+        res.redirect(redirect);
+      }
+      log.request(
+        `Request ended with redirect after ${Date.now() - req.requestTiming}ms; ${req.protocol}, ${req.originalUrl}${status && `, status: ${status}`}`
+      );
+    } else {
+      log.request(
+        `Request ended with response after ${Date.now() - req.requestTiming}ms; ${req.protocol}, ${req.originalUrl}, status: ${status || 200}`
+      );
+      res.status(status || 200)[responseMethod](body);
+    }
+  }
+};
+var sendResponse_default = sendResponse;
+
+// src/handler/createHandler.ts
+var createHandler = ({
+  additionalParams,
+  plugins,
+  requestContextConfig,
+  globalContextContainer,
+  requestContextLocalStorage
+}) => (handler) => async (req, res, next) => {
+  const contextParams = {
+    body: req.body,
+    query: req.query,
+    params: req.params,
+    method: req.method,
+    originalUrl: req.originalUrl,
+    protocol: req.protocol,
+    xhr: req.xhr,
+    get: req.get.bind(req),
+    getHeader: req.get.bind(req),
+    locals: res.locals,
+    next,
+    req,
+    res,
+    ...additionalParams
+  };
+  const requestContextContainer = requestContextConfig === false || requestContextConfig === void 0 ? void 0 : RequestContextContainer(
+    requestContextLocalStorage,
+    contextParams,
+    requestContextConfig
+  );
+  if (!req.requestTiming) {
+    req.requestTiming = Date.now();
+    log.request(
+      `Request started ${req.requestTiming}ms, ${req.protocol}, ${req.originalUrl}`
+    );
+  }
+  const handlerParams = await chainPlugins(
+    plugins,
+    "getHandlerParams"
+  )({
+    ...contextParams,
+    requestContext: requestContextContainer,
+    globalContext: globalContextContainer
+  });
+  let result;
+  await runInContext(globalContextContainer, async () => {
+    return runInContext(requestContextContainer, async () => {
+      try {
+        result = await handler(handlerParams);
+      } catch (error) {
+        next(error);
+        return;
+      }
+    });
+  });
+  if (result instanceof Error) {
+    next(result);
+    return;
+  }
+  const mappedResult = await chainPlugins(
+    plugins,
+    "mapResponse",
+    (previousResult) => !previousResult || previousResult.type === "none"
+  )(result, handlerParams);
+  sendResponse_default(req, res, mappedResult);
+};
+var createErrorHandler = ({
+  additionalParams,
+  plugins,
+  requestContextConfig,
+  globalContextContainer,
+  requestContextLocalStorage
+}) => (handler) => async (error, req, res, next) => {
+  let result;
+  const contextParams = {
+    body: req.body,
+    query: req.query,
+    // params: req.params, // params are reset before error handlers, for whatever reason: https://github.com/expressjs/express/issues/2117
+    method: req.method,
+    originalUrl: req.originalUrl,
+    protocol: req.protocol,
+    xhr: req.xhr,
+    get: req.get.bind(req),
+    getHeader: req.get.bind(req),
+    locals: res.locals,
+    next,
+    req,
+    res,
+    ...additionalParams
+  };
+  const requestContextContainer = requestContextConfig === false || requestContextConfig === void 0 ? void 0 : RequestContextContainer(
+    requestContextLocalStorage,
+    contextParams,
+    requestContextConfig
+  );
+  const handlerParams = await chainPlugins(
+    plugins,
+    "getErrorHandlerParams"
+  )({
+    ...contextParams,
+    requestContext: requestContextContainer,
+    globalContext: globalContextContainer
+  });
+  await runInContext(globalContextContainer, async () => {
+    return runInContext(requestContextContainer, async () => {
+      try {
+        result = await handler(error, handlerParams);
+      } catch (error2) {
+        return next(error2);
+      }
+    });
+  });
+  if (result instanceof Error) {
+    return next(result);
+  }
+  const mappedResult = await chainPlugins(
+    plugins,
+    "mapResponse",
+    (previousResult) => !previousResult || previousResult.type === "none"
+  )(result, handlerParams);
+  sendResponse_default(req, res, mappedResult);
+};
+
+// src/stats.ts
+var getStats = (port) => {
+  const stats = {
+    counters: {},
+    events: {}
+  };
+  const addToList = (category, field, data) => {
+    if (!stats[category]) {
+      stats[category] = {};
+    }
+    if (!stats[category][field]) {
+      stats[category][field] = [];
+    }
+    stats[category][field].push(data);
+  };
+  const logDefaultMiddlewares = (statsInstance2) => {
+    const logMessages = [];
+    if (statsInstance2.getCounter("cors")) {
+      logMessages.push("cors");
+    }
+    if (statsInstance2.getCounter("jsonBodyParser")) {
+      logMessages.push("bodyParser.json");
+    }
+    if (statsInstance2.getCounter("cookieParser")) {
+      logMessages.push("cookie-parser");
+    }
+    if (statsInstance2.getCounter("helmet")) {
+      logMessages.push("helmet");
+    }
+    if (logMessages.length) {
+      log.stats(`  Used built-in middlewares: ${logMessages.join(", ")}`);
+    }
+    const notFoundMessages = [];
+    if (statsInstance2.getCounter("cors-not-found")) {
+      notFoundMessages.push("cors");
+    }
+    if (statsInstance2.getCounter("jsonBodyParser-not-found")) {
+      notFoundMessages.push("bodyParser.json");
+    }
+    if (statsInstance2.getCounter("cookieParser-not-found")) {
+      notFoundMessages.push("cookie-parser");
+    }
+    if (statsInstance2.getCounter("helmet-not-found")) {
+      notFoundMessages.push("helmet");
+    }
+    if (notFoundMessages.length) {
+      log.stats(
+        `  Corresponding libraries for built-in middlewares were not installed: ${notFoundMessages.join(", ")}. To enable them, install the corresponding npm packages.`
+      );
+    }
+  };
+  const statsInstance = {
+    set: (field, number = 1) => stats.counters[field] = number,
+    add: (field, number = 1) => stats.counters[field] = stats.counters[field] ? stats.counters[field] + number : number,
+    getCounter: (field) => stats.counters[field],
+    registerEvent: (eventName, data) => {
+      switch (eventName) {
+        case "registeringRoute":
+          statsInstance.add("routes");
+          statsInstance.add("routeHandlers", data.numberOfHandlers);
+          addToList("events", eventName, { timestamp: Date.now(), ...data });
+          break;
+        default:
+          addToList("events", eventName, { timestamp: Date.now(), ...data });
+      }
+    },
+    getEvents: (eventName) => stats.events[eventName],
+    logStartup: () => {
+      if (port) {
+        log.stats(`-->Stats for simpleExpress app on ${port} port:<--`);
+      } else {
+        log.stats(`-->Stats for simpleExpress app (no port):<--`);
+      }
+      logDefaultMiddlewares(statsInstance);
+      if (statsInstance.getCounter("expressMiddleware")) {
+        log.stats(
+          `  Registered ${statsInstance.getCounter(
+            "expressMiddleware"
+          )} expressMiddleware${statsInstance.getCounter("expressMiddleware") > 1 ? "s" : ""}`
+        );
+      }
+      if (statsInstance.getCounter("middleware")) {
+        log.stats(
+          `  Registered ${statsInstance.getCounter("middleware")} middleware${statsInstance.getCounter("middleware") > 1 ? "s" : ""}`
+        );
+      }
+      if (statsInstance.getCounter("errorHandlers")) {
+        log.stats(
+          `  Registered ${statsInstance.getCounter(
+            "errorHandlers"
+          )} errorHandlers${statsInstance.getCounter("errorHandlers") > 1 ? "s" : ""}`
+        );
+      }
+      if (!statsInstance.getCounter("routes")) {
+        return log.stats(`  No routes registered`);
+      }
+      log.stats(
+        `  Registered ${statsInstance.getCounter(
+          "routes"
+        )} routes with ${statsInstance.getCounter("routeHandlers")} handlers:`
+      );
+      const mappedRoutes = /* @__PURE__ */ new Set();
+      const mappedMethods = {};
+      stats.events.registeringRoute.forEach((routeEvent) => {
+        const { path, method, numberOfHandlers, names } = routeEvent;
+        if (!mappedMethods[path]) {
+          mappedMethods[path] = [];
+        }
+        mappedMethods[path].push({ method, numberOfHandlers, names });
+        mappedRoutes.add(path);
+      });
+      mappedRoutes.forEach((path) => {
+        const invalidRoute = path.indexOf("/") !== 0 && path !== "*";
+        log.stats(
+          `    ${path}${invalidRoute ? ' - WARNING: Route not starting with "/"!' : ""}`
+        );
+        mappedMethods[path].forEach(
+          ({ method, numberOfHandlers, names = [] }) => {
+            let foundNames = false;
+            names.forEach((name) => {
+              if (name !== "anonymous") {
+                foundNames = true;
+              }
+            });
+            log.stats(
+              `      ${method}${numberOfHandlers > 1 || foundNames ? `, ${numberOfHandlers} handler${numberOfHandlers === 1 ? "" : "s"}` : ""}${names && names.length && foundNames ? `: ${names.join(", ")}` : ""}`
+            );
+          }
+        );
+      });
+    }
+  };
+  return statsInstance;
+};
 
 // src/index.ts
-var import_node_async_hooks = require("async_hooks");
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
 var getDefaultConfig = (userConfig, defaultConfig = {
   cors: null,
@@ -812,10 +840,26 @@ var simpleExpress = async ({
   const globalContextLocalStorage = new import_node_async_hooks.AsyncLocalStorage();
   getRequestContext = createGetRequestContext(requestContextLocalStorage);
   getGlobalContext = createGetGlobalContext(globalContextLocalStorage);
-  const globalContextContainer = globalContextConfig === false || globalContextConfig === void 0 ? void 0 : GlobalContextContainer(globalContextLocalStorage, { ...globalContextConfig });
-  const createHandlerWithParams = createHandler({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
-  const createErrorHandlerWithParams = createErrorHandler({ additionalParams: routeParams, plugins, requestContextConfig, globalContextContainer, requestContextLocalStorage });
-  const expressMiddlewareFlat = import_lodash3.default.flattenDeep(expressMiddleware);
+  const globalContextContainer = globalContextConfig === false || globalContextConfig === void 0 ? void 0 : GlobalContextContainer(globalContextLocalStorage, {
+    ...globalContextConfig
+  });
+  const createHandlerWithParams = createHandler({
+    additionalParams: routeParams,
+    plugins,
+    requestContextConfig,
+    globalContextContainer,
+    requestContextLocalStorage
+  });
+  const createErrorHandlerWithParams = createErrorHandler({
+    additionalParams: routeParams,
+    plugins,
+    requestContextConfig,
+    globalContextContainer,
+    requestContextLocalStorage
+  });
+  const expressMiddlewareFlat = import_lodash3.default.flattenDeep(
+    expressMiddleware
+  );
   stats.set("expressMiddleware", expressMiddlewareFlat.length);
   expressMiddlewareFlat.forEach((middleware2) => app.use(middleware2));
   const middlewareFlat = import_lodash3.default.flattenDeep(middleware);
@@ -861,11 +905,21 @@ var simpleExpress = async ({
     }
     return { port: serverAddress.port, address: serverAddress };
   })();
-  return { app, server, stats, port: serverPort, address, getRequestContext, getGlobalContext };
+  return {
+    app,
+    server,
+    stats,
+    port: serverPort,
+    address,
+    getRequestContext,
+    getGlobalContext
+  };
 };
-var wrapMiddleware = (...middleware) => import_lodash3.default.flattenDeep(middleware).map((el) => ({ req, res, next }) => {
-  el(req, res, next);
-});
+var wrapMiddleware = (...middleware) => import_lodash3.default.flattenDeep(middleware).map(
+  (el) => ({ req, res, next }) => {
+    el(req, res, next);
+  }
+);
 var index_default = simpleExpress;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
