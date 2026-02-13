@@ -27,9 +27,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
-  default: () => src_default,
+var index_exports = {};
+__export(index_exports, {
+  default: () => index_default,
   ensureArray: () => ensureArray,
   getGlobalContext: () => getGlobalContext,
   getRequestContext: () => getRequestContext,
@@ -37,7 +37,7 @@ __export(src_exports, {
   simpleExpress: () => simpleExpress,
   wrapMiddleware: () => wrapMiddleware
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(index_exports);
 var import_lodash3 = __toESM(require("lodash"));
 var import_http = __toESM(require("http"));
 var import_express2 = __toESM(require("express"));
@@ -420,7 +420,6 @@ var sendResponse = (req, res, result) => {
 var sendResponse_default = sendResponse;
 
 // src/utils/asyncCollections.ts
-var Break = Symbol("BreakSymbol");
 var LastClass = class {
   constructor(value) {
     this.value = value;
@@ -674,15 +673,21 @@ var getArgs = (args) => {
       results.push([null, args[1]]);
     }
   } else if (args.length === 1) {
-    results.push([null, args[0]]);
+    results.push([
+      null,
+      args[0]
+    ]);
   } else if (args.length === 2) {
-    results.push([args[0], args[1]]);
+    results.push([
+      args[0],
+      args[1]
+    ]);
   } else {
     throw new Error("handleErrors arguments error: expected 1 or 2 arguments");
   }
   return results;
 };
-var handleError = ([errorClass, errorHandler]) => {
+var handleErrorInternal = ([errorClass, errorHandler]) => {
   validateErrorClass(errorClass);
   validateHandler(errorHandler);
   return (error, handlerParams) => {
@@ -692,14 +697,15 @@ var handleError = ([errorClass, errorHandler]) => {
     return error;
   };
 };
-var handleErrors_default = (...args) => {
+function handleErrors(...args) {
   const errorHandlers = getArgs(args);
-  return errorHandlers.map(handleError);
-};
+  return errorHandlers.map(handleErrorInternal);
+}
+var handleErrors_default = handleErrors;
 
 // src/constants.ts
-var defaultAppValue = Symbol("defaultAppValue");
-var defaultServerValue = Symbol("defaultServerValue");
+var defaultAppValue = /* @__PURE__ */ Symbol("defaultAppValue");
+var defaultServerValue = /* @__PURE__ */ Symbol("defaultServerValue");
 
 // src/index.ts
 var import_node_async_hooks = require("async_hooks");
@@ -860,7 +866,7 @@ var simpleExpress = async ({
 var wrapMiddleware = (...middleware) => import_lodash3.default.flattenDeep(middleware).map((el) => ({ req, res, next }) => {
   el(req, res, next);
 });
-var src_default = simpleExpress;
+var index_default = simpleExpress;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ensureArray,
